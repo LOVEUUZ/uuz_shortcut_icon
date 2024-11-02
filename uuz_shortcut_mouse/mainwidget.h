@@ -104,6 +104,11 @@ class MainWidget : public QWidget {
     void slot_moveFocus(QWidget*); //焦点移动
     void slot_onTrayIconActivated(QSystemTrayIcon::ActivationReason reason);
 
+
   public slots:
     void slot_modifyConfig();
+
+#ifdef _DEBUG
+    void slot_action_show_move(bool &is_lock);       //界面是否可移动(同时禁止修改配置文件，避免多屏模式下的复位)
+#endif
 };

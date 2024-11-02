@@ -19,6 +19,12 @@ MainWidget::MainWidget(QWidget* parent) : QWidget(parent) {
 
   connect(this, &MainWidget::sig_moveFocus, this, &MainWidget::slot_moveFocus);
 
+#ifdef _DEBUG
+  //24-11-6: 右键菜单的锁定移动功能，用于缓解多屏模式下的复位问题测试
+  connect(icons_inner_widget, &Icons_inner_widget::sig_action_show_move, this, &MainWidget::slot_action_show_move);
+#endif
+
+
   init_tray();
 
   //去掉最大化最小化。因为下面那个没生效
@@ -247,60 +253,70 @@ void MainWidget::hideEvent(QHideEvent* event) {
   QWidget::hideEvent(event);
 }
 
+#ifdef _DEBUG
+static bool is_move_lock = false;
+#endif
+
 void MainWidget::moveEvent(QMoveEvent* event) {
+  // if (is_move_lock) {
+  if (QApplication::mouseButtons() & Qt::LeftButton) {      //当鼠标左键按下的时候移动才会写入配置文件，用于缓解多屏幕模式下的坐标复位问题
 #ifdef _DEBUG
-  qDebug() << "移动窗口";
+        qDebug() << "移动窗口";
 #endif
 
-  // 多屏幕检测
-  QPoint cursorPos = QCursor::pos();
-  // int index = -1;
-  QList<QScreen*> screens = QGuiApplication::screens();
-  for (int i = 0; i < screens.size(); ++i) {
-    QScreen* screen = screens[i];
-    if (screen->geometry().contains(cursorPos)) {
+    // 多屏幕检测
+    QPoint cursorPos = QCursor::pos();
+    // int index = -1;
+    QList<QScreen*> screens = QGuiApplication::screens();
+    for (int i = 0; i < screens.size(); ++i) {
+      QScreen* screen = screens[i];
+      if (screen->geometry().contains(cursorPos)) {
 #ifdef _DEBUG
-      qDebug() << "当前在屏幕 ==> " << i;
+                qDebug() << "当前在屏幕 ==> " << i;
 #endif
 
-      QPoint coordinate;
+        QPoint coordinate;
 
-      //判断当前屏幕是否记录了坐标，没有则添加新坐标并更新json
-      auto it = screens_coordinate.find(i);
-      if (it == screens_coordinate.end()) {
-        coordinate.setX((screen->size().width()) / 2 - (this->size().width() / 2));
-        coordinate.setY((screen->size().height()) / 2 - (this->size().height() / 2));
-        screens_coordinate[i]                     = coordinate;
-        json_config["coordinate"][i]["screen_id"] = i;
-        json_config["coordinate"][i]["x"]         = coordinate.x();
-        json_config["coordinate"][i]["y"]         = coordinate.y();
+        //判断当前屏幕是否记录了坐标，没有则添加新坐标并更新json
+        auto it = screens_coordinate.find(i);
+        if (it != screens_coordinate.end()) {
+          coordinate.setX((screen->size().width()) / 2 - (this->size().width() / 2));
+          coordinate.setY((screen->size().height()) / 2 - (this->size().height() / 2));
+          screens_coordinate[i]                     = coordinate;
+          json_config["coordinate"][i]["screen_id"] = i;
+          json_config["coordinate"][i]["x"]         = coordinate.x();
+          json_config["coordinate"][i]["y"]         = coordinate.y();
+        }
+
+        coordinate                                                               = this->pos();
+        screens_coordinate[json_config["coordinate"][i]["screen_id"].get<int>()] = coordinate;
+
+        json_config["coordinate"][i]["x"] = coordinate.x();
+        json_config["coordinate"][i]["y"] = coordinate.y();
+
+#ifdef _DEBUG
+                qInfo() << "";
+                qWarning() << "显示坐标修改: " << "id = " << i;
+
+                qWarning() << "coordinate （" << coordinate.x()
+                    << "," << coordinate.y() << ")";
+
+                qWarning() << "json （" << json_config["coordinate"][i]["x"].get<int>()
+                    << "," << json_config["coordinate"][i]["y"].get<int>() << ")";
+
+                qInfo() << "";
+#endif
+
+        break;
       }
-
-      coordinate                                                               = this->pos();
-      screens_coordinate[json_config["coordinate"][i]["screen_id"].get<int>()] = coordinate;
-
-      json_config["coordinate"][i]["x"] = coordinate.x();
-      json_config["coordinate"][i]["y"] = coordinate.y();
-
-#ifdef _DEBUG
-      qDebug() << "coordinate （" << coordinate.x()
-        << "," << coordinate.y() << ")";
-
-      qDebug() << "json （" << json_config["coordinate"][i]["x"].get<int>()
-        << "," << json_config["coordinate"][i]["y"].get<int>() << ")";
-
-      qDebug() << "";
-#endif
-
-      break;
     }
+
+
+    // 写入文件
+    file_config->resize(0); // 清空文件
+    QTextStream config_content(file_config);
+    config_content << QString::fromStdString(json_config.dump(4));
   }
-
-
-  // 写入文件
-  file_config->resize(0); // 清空文件
-  QTextStream config_content(file_config);
-  config_content << QString::fromStdString(json_config.dump(4));
 
   QWidget::moveEvent(event); // 调用基类的 moveEvent
 }
@@ -436,6 +452,22 @@ void MainWidget::slot_modifyConfig() {
   QTextStream config_content(file_config);
   config_content << QString::fromStdString(json_config.dump(4));
 }
+
+#ifdef _DEBUG
+/** 设定为 当锁定状态下也可以移动，但是不会记录进入配置，只限于本次显示 */
+void MainWidget::slot_action_show_move(bool & is_lock) {
+  if (is_lock) {
+    //锁定
+    is_lock = false;
+    is_move_lock = true;
+  }
+  else {
+    //可移动
+    is_lock = true;
+    is_move_lock = false;
+  }
+}
+#endif
 
 
 void MainWidget::slot_showStackedWidgetIndex(const int index) const {

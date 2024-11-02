@@ -106,8 +106,11 @@ public slots:
 
     // void slot_config_widget_close();            //关闭配置页面
 
-    // signals:
-    // void sig_config_widget_close();            //关闭配置页面
+    signals:
+
+#ifdef _DEBUG
+    void sig_action_show_move(bool &is_lock);            //界面移动功能锁定
+#endif
 
 protected:
     void hideEvent(QHideEvent* event) override;
