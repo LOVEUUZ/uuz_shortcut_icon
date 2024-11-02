@@ -267,7 +267,7 @@ void MainWidget::moveEvent(QMoveEvent* event) {
 
       //判断当前屏幕是否记录了坐标，没有则添加新坐标并更新json
       auto it = screens_coordinate.find(i);
-      if (it == screens_coordinate.end()) {
+      if (it != screens_coordinate.end()) {
         coordinate.setX((screen->size().width()) / 2 - (this->size().width() / 2));
         coordinate.setY((screen->size().height()) / 2 - (this->size().height() / 2));
         screens_coordinate[i]                     = coordinate;
@@ -283,13 +283,16 @@ void MainWidget::moveEvent(QMoveEvent* event) {
       json_config["coordinate"][i]["y"] = coordinate.y();
 
 #ifdef _DEBUG
-      qDebug() << "coordinate （" << coordinate.x()
+      qInfo() << "";
+      qWarning() << "显示坐标修改: " << "id = " << i;
+
+      qWarning() << "coordinate （" << coordinate.x()
         << "," << coordinate.y() << ")";
 
-      qDebug() << "json （" << json_config["coordinate"][i]["x"].get<int>()
+      qWarning() << "json （" << json_config["coordinate"][i]["x"].get<int>()
         << "," << json_config["coordinate"][i]["y"].get<int>() << ")";
 
-      qDebug() << "";
+      qInfo() << "";
 #endif
 
       break;

@@ -190,10 +190,10 @@ void Config_window::slot_openConfigPath() {
 
 	auto objName = sender()->objectName();
 	if (objName == "btn_openLogFilePath") {
-		filePath_tmp += "/config";
+		filePath_tmp += "/log";
 	}
 	else if (objName == "btn_openFilePath") {
-		filePath_tmp += "/log";
+		filePath_tmp += "/config";
 	}
 	QUrl    fileUrl = QUrl::fromLocalFile(filePath_tmp);
 	QDesktopServices::openUrl(fileUrl);

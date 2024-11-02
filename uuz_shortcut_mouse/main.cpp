@@ -31,6 +31,8 @@ int main(int argc, char* argv[]) {
   qInstallMessageHandler(Logger::messageHandler);
 #endif
 
+  qInfo() << "启动";
+
   //设置程序图标
   QIcon appIcon(":/res/Resource/uuz_tray.ico");
   a.setWindowIcon(appIcon);
