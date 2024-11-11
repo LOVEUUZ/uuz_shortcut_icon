@@ -32,7 +32,13 @@ MainWidget::MainWidget(QWidget* parent) : QWidget(parent) {
 #ifdef NDEBUG
   //置顶 禁用最大最小化
   this->setWindowFlags(
-    this->windowFlags() | Qt::WindowStaysOnTopHint | Qt::WindowCloseButtonHint | Qt::CustomizeWindowHint);
+    (this->windowFlags() & ~Qt::WindowCloseButtonHint) // 移除关闭按钮
+    & ~Qt::WindowMinimizeButtonHint                    // 移除最小化按钮
+    & ~Qt::WindowMaximizeButtonHint                    // 移除最大化按钮
+    | Qt::WindowStaysOnTopHint                         // 置顶
+    | Qt::CustomizeWindowHint                          // 自定窗口
+  );
+
 #endif
 
   // setStyleSheet("MainWidget{background-color: #b7b7b7;} ");
@@ -259,7 +265,8 @@ static bool is_move_lock = false;
 
 void MainWidget::moveEvent(QMoveEvent* event) {
   // if (is_move_lock) {
-  if (QApplication::mouseButtons() & Qt::LeftButton) {      //当鼠标左键按下的时候移动才会写入配置文件，用于缓解多屏幕模式下的坐标复位问题
+  if (QApplication::mouseButtons() & Qt::LeftButton) {
+    //当鼠标左键按下的时候移动才会写入配置文件，用于缓解多屏幕模式下的坐标复位问题
 #ifdef _DEBUG
         qDebug() << "移动窗口";
 #endif
