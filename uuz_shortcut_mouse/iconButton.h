@@ -41,7 +41,7 @@ class icon_button : public QToolButton {
 
   private:
     void init_icon(const QString & filePath);
-    void openFile(const QString & filePath);
+    bool openFile(const QString & filePath);
     void updateIcon(const QString & filePath);
     int  calculateClosestIndex(const QPoint & pos);
 
@@ -52,6 +52,7 @@ class icon_button : public QToolButton {
 
 
     QString     filePath;
+    QString     fileOrigenPath;
     QString     showName;
     QIcon       m_icon; // 文件图标
     static int  iconSize;

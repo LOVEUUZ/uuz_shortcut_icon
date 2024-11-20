@@ -23,7 +23,6 @@ Icons_inner_widget::Icons_inner_widget(QWidget* parent) :
   for (auto icon_button : vec_iconButton) {
     init_button_connect(icon_button);
   }
-
 }
 
 Icons_inner_widget::~Icons_inner_widget() {
@@ -67,7 +66,7 @@ void Icons_inner_widget::contextMenuEvent(QContextMenuEvent* event) {
 #ifdef _DEBUG
   QAction* action_show_move        = contextMenu.addAction(tr("显示区域锁定/可移动"));
 #endif
-  QAction* action_config           = contextMenu.addAction(tr("设置"));
+  QAction* action_config = contextMenu.addAction(tr("设置"));
 
   if (is_install_hook) {
     action_unInstall_hook->setText(tr("锁定界面"));
@@ -264,16 +263,24 @@ void Icons_inner_widget::dropEvent(QDropEvent* event) {
 
 /**构建Config，修改配置并进行回写*/
 void Icons_inner_widget::handleDroppedItem(const QString & fileName, int index) {
+  //24-11-20 优化新增icon逻辑, 如果是快捷方式则尝试获取源文件路径
+  QString   fileOrigenPath = "";
+  QFileInfo fileInfo(fileName);
+  if (fileInfo.isSymLink()) {
+    fileOrigenPath = fileInfo.symLinkTarget();
+  }
+
   Config  config;
-  QString creationTime = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
-  config.id            = index;
-  config.fileName      = fileName.toStdString();
-  QString name         = QFileInfo(fileName).fileName();
-  config.showName      = name.toStdString();
-  config.absolutePath  = fileName.toStdString();
-  config.creationTime  = creationTime.toStdString();
-  config.lastMoveTime  = creationTime.toStdString();
-  config.coordinate    = Coordinate(vec_coordinate[index].first, vec_coordinate[index].second);
+  QString creationTime  = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+  config.id             = index;
+  config.fileOrigenPath = fileOrigenPath.toStdString();
+  config.fileName       = fileName.toStdString();
+  QString name          = QFileInfo(fileName).fileName();
+  config.showName       = name.toStdString();
+  config.absolutePath   = fileName.toStdString();
+  config.creationTime   = creationTime.toStdString();
+  config.lastMoveTime   = creationTime.toStdString();
+  config.coordinate     = Coordinate(vec_coordinate[index].first, vec_coordinate[index].second);
 
   auto tmp_qb = new icon_button(this, config);
   init_button_connect(tmp_qb);
@@ -286,6 +293,7 @@ void Icons_inner_widget::handleDroppedItem(const QString & fileName, int index) 
   vec_config.push_back(config);
 
   //更新配置文件,回写进配置文件
+  qDebug() << "新增内容 》》》 " << QString::fromUtf8(config.toJson().dump(4));
   modify_config(ADD, config);
   qInfo() << "新增成功";
 }

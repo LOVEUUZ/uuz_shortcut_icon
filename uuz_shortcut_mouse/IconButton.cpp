@@ -14,9 +14,10 @@ bool icon_button::is_moving = false;
 
 icon_button::icon_button(QWidget* parent, const Config config) : QToolButton(parent), config(config),
                                                                  change_show_name_edit(nullptr) {
-  this->ID       = config.id;
-  this->filePath = QString::fromUtf8(config.absolutePath);
-  showName       = QString::fromStdString(config.showName); //显示名称
+  this->ID             = config.id;
+  this->filePath       = QString::fromUtf8(config.absolutePath);
+  this->fileOrigenPath = QString::fromUtf8(config.fileOrigenPath);
+  showName             = QString::fromStdString(config.showName); //显示名称
   setText(showName);
   parent_widget_content = dynamic_cast<Icons_inner_widget*>(parentWidget());
   vec_coordinate        = parent_widget_content->getVecCoordinate();
@@ -105,7 +106,14 @@ void icon_button::mouseReleaseEvent(QMouseEvent* event) {
       else move(original_pos);
     }
     else {
-      openFile(filePath); // 打开对应程序
+      // 24-11-20 打开对应程序（可能是源文件也可能是快捷方式，如果打开失败则尝试打开源文件）
+      if (!openFile(filePath)) {
+        if (!openFile(fileOrigenPath)) {
+          qWarning() << "无法打开文件filePath：" << filePath << "和 fileOrigenPath: " << fileOrigenPath;
+          //弹出提示框
+          QMessageBox::warning(this, "错误", "无法打开文件，请检查文件是否存在或者是否有权限打开");
+        }
+      }
     }
     // 恢复样式
     setStyleSheet("QToolButton { background-color: #b7b7b7; border: 1px solid #888; border-radius: 5px; }");
@@ -159,9 +167,9 @@ void icon_button::leaveEvent(QEvent* event) {
   QToolButton::leaveEvent(event);
 }
 
-extern bool is_install_hook;    //来自icons_inner_widget.cpp 用于控制界面是否是锁定状态
+extern bool is_install_hook; //来自icons_inner_widget.cpp 用于控制界面是否是锁定状态
 
-void icon_button::openFile(const QString & filePath) {
+bool icon_button::openFile(const QString & filePath) {
   QString   filePath_tmp = QDir::toNativeSeparators(filePath); // 转为本地格式
   QFileInfo fileInfo(filePath_tmp);
   QString   directory = fileInfo.absolutePath();
@@ -173,8 +181,8 @@ void icon_button::openFile(const QString & filePath) {
   QDir::setCurrent(directory);
 
   // 打开文件/文件夹
-  QUrl fileUrl = QUrl::fromLocalFile(filePath_tmp); // 转为url
-  QDesktopServices::openUrl(fileUrl);               // 使用该函数可以打开exe，也能打开jpg，txt等文件
+  QUrl fileUrl = QUrl::fromLocalFile(filePath_tmp);  // 转为url
+  bool state   = QDesktopServices::openUrl(fileUrl); // 使用该函数可以打开exe，也能打开jpg，txt等文件
 
   qInfo() << "Starting process:" << filePath_tmp;
 
@@ -190,6 +198,8 @@ void icon_button::openFile(const QString & filePath) {
       emit mainWidget->sig_moveFocus(nullptr);
     }
   }
+
+  return state;
 }
 
 

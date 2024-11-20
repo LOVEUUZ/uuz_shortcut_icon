@@ -13,6 +13,7 @@ json Config::toJson() const {
   return json{
     {"id", id},
     {"fileName", fileName},
+    {"fileOrigenPath", fileOrigenPath},
     {"showName", showName},
     {"absolutePath", absolutePath},
     {"creationTime", creationTime},
@@ -25,8 +26,17 @@ json Config::toJson() const {
 // 从 JSON 转为 Config
 Config Config::fromJson(const json & j) {
   Config config;
-  config.id           = j.at("id").get<int>();
-  config.fileName     = j.at("fileName").get<std::string>();
+  config.id       = j.at("id").get<int>();
+  config.fileName = j.at("fileName").get<std::string>();
+
+  //24.11.20 出现异常说明没有这个字段，则给一个默认值
+  try {
+    config.fileOrigenPath = j.at("fileOrigenPath").get<std::string>();
+  }
+  catch (...) {
+    config.fileOrigenPath = "";
+  }
+
   config.showName     = j.at("showName").get<std::string>();
   config.absolutePath = j.at("absolutePath").get<std::string>();
   config.creationTime = j.at("creationTime").get<std::string>();
