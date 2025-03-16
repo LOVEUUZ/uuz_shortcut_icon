@@ -1,0 +1,196 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>qml;cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>qrc;rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+    </Filter>
+    <Filter Include="Translation Files">
+      <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
+      <Extensions>ts</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Component">
+      <UniqueIdentifier>{16aab9b4-620b-495f-bd88-29d32942f1b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\tools">
+      <UniqueIdentifier>{67097532-1160-426b-b4fe-e043b7729f65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\window">
+      <UniqueIdentifier>{4be02d6f-ce9f-4834-a1d8-7693ada37410}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Component">
+      <UniqueIdentifier>{91d74a82-7ed5-472c-a139-6497a4bb3149}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\tools">
+      <UniqueIdentifier>{3bce3c70-dd7c-47ed-9f0e-0a80eba0e6fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\window">
+      <UniqueIdentifier>{ba87aa5f-930f-4e64-8549-06001a91bdc6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mainwidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="logger.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="config.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Everything.c">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="keyEvent.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsHookMouseEx.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="config_window.cpp">
+      <Filter>Source Files\window</Filter>
+    </ClCompile>
+    <ClCompile Include="IconButton.cpp">
+      <Filter>Source Files\window</Filter>
+    </ClCompile>
+    <ClCompile Include="icons_inner_widget.cpp">
+      <Filter>Source Files\window</Filter>
+    </ClCompile>
+    <ClCompile Include="search_content.cpp">
+      <Filter>Source Files\window</Filter>
+    </ClCompile>
+    <ClCompile Include="search_line.cpp">
+      <Filter>Source Files\window</Filter>
+    </ClCompile>
+    <ClCompile Include="textedit.cpp">
+      <Filter>Source Files\window</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resource\origin.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resource\uuz_exe_32x32.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resource\uuz_exe_48x48.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resource\uuz_exe_64x64.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resource\uuz_exe_72x72.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resource\uuz_exe_96x96.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resource\uuz_exe_128x128.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resource\uuz_logo.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resource\uuz_tray.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="config.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Everything.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="everything_ipc.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="keyEvent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsHookKeyEx.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsHookMouseEx.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="json.hpp">
+      <Filter>Source Files\Component</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="config_window.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="icon_button.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="mainwidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="search_content.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Search_line.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="icons_inner_widget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="config_window.h">
+      <Filter>Header Files\window</Filter>
+    </QtMoc>
+    <QtMoc Include="iconButton.h">
+      <Filter>Header Files\window</Filter>
+    </QtMoc>
+    <QtMoc Include="icons_inner_widget.h">
+      <Filter>Header Files\window</Filter>
+    </QtMoc>
+    <QtMoc Include="search_content.h">
+      <Filter>Header Files\window</Filter>
+    </QtMoc>
+    <QtMoc Include="textedit.h">
+      <Filter>Header Files\window</Filter>
+    </QtMoc>
+    <QtMoc Include="mainwidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="resource.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="Search_line.h">
+      <Filter>Header Files\window</Filter>
+    </QtMoc>
+    <QtMoc Include="WindowsHookKeyEx.cpp">
+      <Filter>Source Files\Component</Filter>
+    </QtMoc>
+    <QtMoc Include="logger.h">
+      <Filter>Header Files\tools</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="mainwidget.qrc">
+      <Filter>Resource Files</Filter>
+    </QtRcc>
+  </ItemGroup>
+</Project>
