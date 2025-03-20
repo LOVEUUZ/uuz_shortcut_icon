@@ -275,7 +275,7 @@ void MainWidget::moveEvent(QMoveEvent* event) {
     QPoint cursorPos = QCursor::pos();
     // int index = -1;
     QList<QScreen*> screens = QGuiApplication::screens();
-    for (int i = 0; i < screens.size(); ++i) {
+    for (int i = 0; i < 10; ++i) {
       QScreen* screen = screens[i];
       if (screen->geometry().contains(cursorPos)) {
 #ifdef _DEBUG
@@ -349,6 +349,40 @@ void MainWidget::init_coordinate() {
   if (qstr_config_content.isEmpty()) {
     //添加日志的记录，避免读取保留天数的时候出错
     json_config["log_retain_day"] = 7;
+
+	//2025.3.20: 预先创建10个屏幕的坐标记录，避免鼠标拖动窗口跨越屏幕的瞬间似乎json库会空指针
+    json_config["coordinate"] = nlohmann::json::array();
+
+    // 获取所有屏幕信息
+    QList<QScreen*> screens = QGuiApplication::screens();
+    int screenCount = screens.size();
+
+    for (int i = 0; i < 10; ++i) {
+        QPoint coordinate;
+
+        if (i < screenCount) {
+            // 真实存在的屏幕
+            QRect screenGeometry = screens[i]->geometry();
+            coordinate.setX(screenGeometry.center().x() - this->width() / 2);
+            coordinate.setY(screenGeometry.center().y() - this->height() / 2);
+        }
+        else if (screenCount > 0) {
+			// 预备，使用第一个屏幕的中心
+            QRect firstScreenGeometry = screens[0]->geometry();
+            coordinate.setX(firstScreenGeometry.center().x() - this->width() / 2);
+            coordinate.setY(firstScreenGeometry.center().y() - this->height() / 2);
+        }
+        
+        json_config["coordinate"].push_back({
+            {"screen_id", i},
+            {"x", coordinate.x()},
+            {"y", coordinate.y()}
+            });
+
+        screens_coordinate[i] = coordinate;
+    }
+
+
     QTextStream text_stream(file_config);
     text_stream << QString::fromStdString(json_config.dump(4));
     return;
