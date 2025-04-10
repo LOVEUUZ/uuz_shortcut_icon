@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QDebug>
 #include <queue>
+#include <unordered_map>
+#include <chrono>
 
 #include <windows.h>
 
@@ -40,6 +42,9 @@ class WindowsHookKeyEx : public QObject {
     std::queue<KeyEvent>          queue_; //按键队列
     std::mutex                    mtx_write;
     std::function<void(KeyEvent)> func = nullptr; //存储当前接收的策略
+
+    static std::unordered_map<uint64_t, int> keyPressCount;  // 键位与计数器映射，计数器用于判断按下与松开
+    static bool altPressed;                                  // 跟踪 Alt 键的状态
 
     void messageLoop(); //循环windows键盘事件
 

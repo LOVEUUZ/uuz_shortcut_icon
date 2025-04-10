@@ -84,6 +84,11 @@ std::string WindowsHookKeyEx::getKeyName(DWORD vkCode) {
   return "Unknown";
 }
 
+
+
+// 2025.04.10：优化按键钩子，处理当alt按下与非按下状态下其他键位的触发
+std::unordered_map<uint64_t, int> WindowsHookKeyEx::keyPressCount;
+bool WindowsHookKeyEx::altPressed = false;
 //钩子函数
 LRESULT WindowsHookKeyEx::KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode >= 0) {
@@ -95,13 +100,32 @@ LRESULT WindowsHookKeyEx::KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) 
     KeyEvent key_event;
     key_event.key      = pkbhs->vkCode;
     key_event.key_name = getKeyName(pkbhs->vkCode);
+
+
     if ((pkbhs->vkCode == 164 || pkbhs->vkCode == 165) && wParam == WM_KEYUP) {
+        std::thread([&]() {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));   // 延迟100ms，当手速很快的时候避免alt释放过快
+          altPressed = false;
+        }).detach();
       key_event.isPressed = false;
     }
     else if (pkbhs->vkCode == 164 || pkbhs->vkCode == 165) {
+      altPressed = true;
       key_event.isPressed = true;
     }
+    else if (altPressed) {
+            //当alt按下状态处理其他按键的出发状态
+            if (keyPressCount[pkbhs->vkCode] % 2 == 0) {  // 第一次按下
+                key_event.isPressed = true;
+                keyPressCount[pkbhs->vkCode]++;
+            }
+            else {  // 第二次按下，视为松开
+                key_event.isPressed = false;
+                keyPressCount[pkbhs->vkCode]++;
+            }
+    }
     else {
+	  //正常情况下的按键处理(alt没有按下的时候)
       if (wParam == WM_KEYDOWN) {
         key_event.isPressed = true;
       }
