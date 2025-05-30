@@ -116,12 +116,12 @@
     <ClCompile Include="search_line.cpp" />
     <ClCompile Include="textedit.cpp" />
     <ClCompile Include="WindowsHookMouseEx.cpp" />
-    <QtMoc Include="WindowsHookKeyEx.cpp">
+    <ClCompile Include="WindowsHookKeyEx.cpp">
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).moc</QtMocFileName>
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
-    </QtMoc>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resource\origin.jpg" />

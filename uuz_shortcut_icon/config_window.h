@@ -13,7 +13,7 @@
 #include "WindowsHookKeyEx.h"
 #include "WindowsHookMouseEx.h"
 #include "Logger.h"
-
+#include <windows.h>
 
 class MainWidget;
 
@@ -26,6 +26,7 @@ public:
 
 protected:
 	void closeEvent(QCloseEvent* event) override;
+	bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
 	Ui::Config_windowClass ui;
@@ -33,8 +34,13 @@ private:
 	void                   init_translate();
 
 	//json所需的key
-	const std::string is_boot_start = "is_boot_start";
-	const std::string log_retain_day = "log_retain_day";
+	const std::string shortcut_key_msg = "shortcut_key_msg";
+	const std::string is_boot_start    = "is_boot_start";
+	const std::string log_retain_day   = "log_retain_day";
+	const std::string Ctrl             = "Ctrl";
+	const std::string CtrlCount        = "CtrlCount";
+	const std::string Alt              = "Alt";
+	const std::string AltCount         = "AltCount";
 
 	//配置
 	bool config_is_boot_start;
@@ -45,9 +51,15 @@ private:
 	QStringList& filter_path_list;
 	QStringList& filter_suffix_list;
 
-
 	int state;
 
+	//快捷键
+	bool recording = false;
+	int first_key_code = -1;
+
+	ShortcutKeyMsg shortcut_msg;
+
+	
 signals:
 	void sig_checkBoxIsBootStart();
 
@@ -56,4 +68,9 @@ private slots:
 	void slot_spinBoxValueChanged(int day);
 	void slot_openConfigPath();
 	void slot_aboutDialog();
+	void slot_checkBoxCtrlChanged(int state);
+	void slot_checkBoxAltChanged(int state);
+	void slot_spinBoxCtrlChanged(int val);
+	void slot_spinBoxAltChanged(int val);
+	void slot_clearButton_clicked();
 };

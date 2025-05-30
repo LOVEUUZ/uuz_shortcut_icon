@@ -17,7 +17,7 @@
 
 //核心，windows钩子
 class WindowsHookKeyEx : public QObject {
-  public:
+public:
     static WindowsHookKeyEx* ptr_windows_hook;
 
     static WindowsHookKeyEx* getWindowHook();
@@ -29,7 +29,7 @@ class WindowsHookKeyEx : public QObject {
     //策略模式，接受一个传进来的方法
     bool setFunc(const std::function<void(KeyEvent)> & newFunc);
 
-  private:
+private:
     explicit WindowsHookKeyEx()  = default;
     ~WindowsHookKeyEx() override = default;
 

@@ -158,40 +158,37 @@ void MainWidget::init_shortcutKey() {
 
 void MainWidget::setKeyEvent() {
   //注册给钩子那边调用的函数
-  std::function<void(KeyEvent)> func = [&](const KeyEvent & event) {
+  std::function<void(KeyEvent)> func = [&](const KeyEvent & keyEvent) {
 #ifdef _DEBUG
-    std::cout << event.key << " - " << event.isPressed << "\n";
+    std::cout << keyEvent.key << " - " << keyEvent.isPressed << "\n";
 #endif
 
-    //松开一次计数
-    if ((event.key == 162 && !event.isPressed) || (event.key == 163 && !event.isPressed)) {
-      ctrlReleaseCount++;
-#ifdef _DEBUG
-      qDebug() << "释放计数 " << ctrlReleaseCount;
-#endif
-      return;
-    }
-
-    if ((event.key == 162 && event.isPressed) || (event.key == 163 && event.isPressed)) {
-      //左右的ctrl
-      ctrlPressTimer->start();
-      ctrlPressCount++;
-      if (ctrlPressCount == 2 && ctrlReleaseCount == 1) {
-        //双击唤醒/隐藏窗口
+    static bool ctrlOrAltIsPressed = false;
+    if (keyEvent.key == shortcut_key_value_1 || ctrlOrAltIsPressed) { //左右alt和ctrl
+      ctrlOrAltIsPressed = true;
+      if (keyEvent.key == shortcut_key_value_1 && !keyEvent.isPressed) {  //松开ctrl或alt则结束判断
+	    // 定时器，延时修改第一个键的当前状态，因为当手速很快的时候还没来得及按下第二个键，第一个已经松开了
+        QTimer::singleShot(100, this, [this]() {
+            ctrlOrAltIsPressed = false;
+         });
+        return;  
+      }
+      if (keyEvent.key == shortcut_key_value_2 && keyEvent.isPressed && ctrlOrAltIsPressed) {   //第二个按键符合且是按下触发
         if (isHidden()) {
           this->raise();
-          this->activateWindow();
+          //this->activateWindow();
           show();
+        } else {
+	   	  hide();
         }
-        else hide();
+      } else if (keyEvent.key == shortcut_key_value_2 && !keyEvent.isPressed) {   //第二个按键符合并松开
+        return;
       }
     }
-    //显示状态的时候单次按下 esc按键 则隐藏
-    else if (event.key == 27) {
-      if (!this->isHidden()) {
-        hide();
-      }
+    else {
+		hide(); //隐藏主窗口
     }
+    
   };
 
   windowsKeyHookEx = WindowsHookKeyEx::getWindowHook();

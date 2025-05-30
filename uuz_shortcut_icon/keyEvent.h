@@ -34,6 +34,14 @@ struct ShortcutKeyMsg {
     j.at("key_value_serial_number").get_to(msg.key_value_serial_number);
     j.at("str_key_list").get_to(msg.str_key_list);
   }
+
+  friend void to_json(nlohmann::json& j, const ShortcutKeyMsg& msg) {
+    j = nlohmann::json{
+      {"key_value_total", msg.key_value_total},
+      {"key_value_serial_number", msg.key_value_serial_number},
+      {"str_key_list", msg.str_key_list}
+    };
+  }
 };
 
 //快捷键的key总值与对应信息的映射

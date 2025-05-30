@@ -80,6 +80,9 @@
     <ClCompile Include="textedit.cpp">
       <Filter>Source Files\window</Filter>
     </ClCompile>
+    <ClCompile Include="WindowsHookKeyEx.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resource\origin.jpg">
@@ -177,9 +180,6 @@
     </QtMoc>
     <QtMoc Include="Search_line.h">
       <Filter>Header Files\window</Filter>
-    </QtMoc>
-    <QtMoc Include="WindowsHookKeyEx.cpp">
-      <Filter>Source Files\Component</Filter>
     </QtMoc>
     <QtMoc Include="logger.h">
       <Filter>Header Files\tools</Filter>

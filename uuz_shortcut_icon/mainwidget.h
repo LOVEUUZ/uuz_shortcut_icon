@@ -79,6 +79,8 @@ class MainWidget : public QWidget {
     QFile*            file_config;
     nlohmann::json    json_config;
     QMap<int, QPoint> screens_coordinate; //多屏幕坐标记录，和json冗余，但用起来方便
+    uint64_t          shortcut_key_value_1 = 165; //唤醒快捷键(左右alt+ctrl四选一)
+    uint64_t          shortcut_key_value_2 = 65; //唤醒快捷键
   public:
     nlohmann::json& get_jsonConfig() { return json_config; }
 

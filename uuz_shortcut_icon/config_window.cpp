@@ -41,6 +41,21 @@ Config_window::Config_window(QWidget* parent) :
 	connect(ui.btn_about, &QPushButton::clicked, this, &Config_window::slot_aboutDialog);
 
 	//过滤相关配置修改
+
+	//ctrl和alt和计数器的绑定
+	connect(ui.checkBox_Ctrl, &QCheckBox::checkStateChanged, this, &Config_window::slot_checkBoxCtrlChanged);
+	connect(ui.checkBox_Alt, &QCheckBox::checkStateChanged, this, &Config_window::slot_checkBoxAltChanged);
+	connect(ui.spinBox_Ctrl, QOverload<int>::of(&QSpinBox::valueChanged), this, &Config_window::slot_spinBoxCtrlChanged);
+	connect(ui.spinBox_Alt, QOverload<int>::of(&QSpinBox::valueChanged), this, &Config_window::slot_spinBoxAltChanged);
+
+
+
+	//快捷键
+	ui.lineEdit_shortcut_edit->installEventFilter(this); 
+
+	//清空快捷键输入框按钮
+	connect(ui.btn_clear, &QPushButton::clicked, this, &Config_window::slot_clearButton_clicked);
+
 }
 
 Config_window::~Config_window() {}
@@ -219,4 +234,139 @@ void Config_window::slot_aboutDialog() {
 
 	aboutDialog.setLayout(mainLayout);
 	aboutDialog.exec();
+}
+
+
+
+#ifdef _DEBUG
+static void printStdVector(const std::vector<uint32_t>& vec) {
+	QStringList list;
+	for (auto v : vec) {
+		list << QString::number(v);
+	}
+	qDebug() << "按键序列:" << list.join(", ");
+}
+#endif
+
+/** 捕获快捷键 */
+bool Config_window::eventFilter(QObject* obj, QEvent* event) {
+	if (obj == ui.lineEdit_shortcut_edit) {
+
+		//TODO 禁用输入法
+
+		if (event->type() == QEvent::KeyPress) {
+			QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
+			int key = key_event->key();
+
+			// 忽略 Ctrl / Alt
+			if (key == Qt::Key_Control || key == Qt::Key_Alt) return true;
+
+			if (!recording) {
+				// 第一次按下
+				recording = true;
+				first_key_code = key;
+				shortcut_msg = ShortcutKeyMsg(); // 清空旧数据
+			}
+
+			if (shortcut_msg.key_value_serial_number.size() >= 3) return true;
+
+			// 避免重复记录
+			if (std::find(shortcut_msg.key_value_serial_number.begin(),shortcut_msg.key_value_serial_number.end(), key) == shortcut_msg.key_value_serial_number.end()) {
+
+				shortcut_msg.key_value_serial_number.push_back(key);
+				shortcut_msg.key_value_total += key;
+
+				QString text = QKeySequence(key).toString(QKeySequence::NativeText).toUpper();
+				if (text.isEmpty()) {
+					switch (key) {
+						case Qt::Key_Space: text = "SPACE"; break;
+						case Qt::Key_Tab: text = "TAB"; break;
+						default: text = QString("KEY_%1").arg(key);
+					}
+				}
+				shortcut_msg.str_key_list.push_back(text.toStdString());
+
+				// 更新显示
+				QStringList key_strings;
+				for (const auto& s : shortcut_msg.str_key_list)
+					key_strings << QString::fromStdString(s);
+				ui.lineEdit_shortcut_edit->setText(key_strings.join('+'));
+			}
+
+			return true;
+		}
+
+		if (event->type() == QEvent::KeyRelease) {
+			QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
+			int key = key_event->key();
+
+			// 当第一个键释放，停止记录
+			if (recording && key == first_key_code) {
+				recording = false;
+				first_key_code = -1;
+
+#ifdef _DEBUG
+				qDebug() << "记录结束，键值总和:" << shortcut_msg.key_value_total;
+				printStdVector(shortcut_msg.key_value_serial_number);
+#endif
+			}
+
+			//写入配置
+			json& json_config = main_widget->get_jsonConfig();
+			json_config[shortcut_key_msg] = shortcut_msg;
+			emit sig_checkBoxIsBootStart();
+			return true;
+		}
+	}
+
+	return QWidget::eventFilter(obj, event);
+}
+
+
+void Config_window::slot_checkBoxCtrlChanged(int state) {
+	json& json_config = main_widget->get_jsonConfig();
+	if (state == Qt::Checked) {
+		json_config[Ctrl] = true;
+	}
+	else if (state == Qt::Unchecked) {
+		json_config[Ctrl] = false;
+	}
+	emit sig_checkBoxIsBootStart();
+}
+
+void Config_window::slot_checkBoxAltChanged(int state) {
+	json& json_config = main_widget->get_jsonConfig();
+	if (state == Qt::Checked) {
+		json_config[Alt] = true;
+	}
+	else if (state == Qt::Unchecked) {
+		json_config[Alt] = false;
+	}
+	emit sig_checkBoxIsBootStart();
+}
+
+void Config_window::slot_spinBoxCtrlChanged(int val) {
+	json& json_config = main_widget->get_jsonConfig();
+	json_config[CtrlCount] = val;
+	emit sig_checkBoxIsBootStart();
+}
+
+void Config_window::slot_spinBoxAltChanged(int val) {
+	json& json_config = main_widget->get_jsonConfig();
+	json_config[AltCount] = val;
+	emit sig_checkBoxIsBootStart();
+}
+
+void Config_window::slot_clearButton_clicked(){
+	ui.lineEdit_shortcut_edit->clear();
+	shortcut_msg = ShortcutKeyMsg(); // 创建一个新的空数据覆盖旧数据
+	recording = false;
+	first_key_code = -1;
+
+	json& json_config = main_widget->get_jsonConfig();
+	if (json_config.contains(shortcut_key_msg)) {
+		json_config.erase(shortcut_key_msg);
+	}
+
+	emit sig_checkBoxIsBootStart();
 }
