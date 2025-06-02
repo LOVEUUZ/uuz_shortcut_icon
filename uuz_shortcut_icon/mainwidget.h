@@ -81,6 +81,9 @@ class MainWidget : public QWidget {
     QMap<int, QPoint> screens_coordinate; //多屏幕坐标记录，和json冗余，但用起来方便
     uint64_t          shortcut_key_value_1 = 165; //唤醒快捷键(左右alt+ctrl四选一)
     uint64_t          shortcut_key_value_2 = 65; //唤醒快捷键
+	bool			  is_changed = true; //配置是否被修改过，及时更新缓存
+	bool			  isFirstStart = false;
+
   public:
     nlohmann::json& get_jsonConfig() { return json_config; }
 
@@ -109,6 +112,7 @@ class MainWidget : public QWidget {
 
   public slots:
     void slot_modifyConfig();
+    void slot_showConfigWidget();
 
 #ifdef _DEBUG
     void slot_action_show_move(bool &is_lock);       //界面是否可移动(同时禁止修改配置文件，避免多屏模式下的复位)

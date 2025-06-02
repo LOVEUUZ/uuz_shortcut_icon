@@ -55,7 +55,6 @@ Config_window::Config_window(QWidget* parent) :
 
 	//清空快捷键输入框按钮
 	connect(ui.btn_clear, &QPushButton::clicked, this, &Config_window::slot_clearButton_clicked);
-
 }
 
 Config_window::~Config_window() {}
@@ -103,9 +102,44 @@ void Config_window::init_config() {
 	QString filter_path = filter_path_list.join("\n");
 	QString filter_suffix = filter_suffix_list.join("\n");
 
+	// 检查并设置默认值
+	if (!json_config.contains("Ctrl")) json_config["Ctrl"] = true; // 默认 Ctrl 勾选
+	if (!json_config.contains("Alt")) json_config["Alt"] = false;
+	if (!json_config.contains("CtrlCount")) json_config["CtrlCount"] = 2; // 默认 Ctrl 连按 2 次
+	if (!json_config.contains("AltCount")) json_config["AltCount"] = 2;
+
 	ui.textEdit_filterPath->setText(filter_path);
 	ui.textEdit_filterSuffix->setText(filter_suffix);
-}
+
+	bool isCtrlChecked = json_config[Ctrl].get<bool>();
+	bool isAltChecked = json_config[Alt].get<bool>();
+	ui.checkBox_Ctrl->setCheckState(isCtrlChecked ? Qt::Checked : Qt::Unchecked);
+	ui.checkBox_Alt->setCheckState(isAltChecked ? Qt::Checked : Qt::Unchecked);
+	// 如果 Ctrl 或 Alt 任意一个为 选中，则禁用 lineEdit
+	bool enable = !(isCtrlChecked || isAltChecked);
+	ui.lineEdit_shortcut_edit->setEnabled(enable);
+	if (!enable) ui.lineEdit_shortcut_edit->clear();
+
+	ui.spinBox_Ctrl->setValue(json_config[CtrlCount].get<int>());
+	ui.spinBox_Alt->setValue(json_config[AltCount].get<int>());
+
+	const auto& shortcut = json_config[shortcut_key_msg];
+	std::vector<std::string> vec_keyName;
+	QString keysText;
+
+	if (shortcut.contains("str_key_list")) {
+		vec_keyName = shortcut["str_key_list"].get<std::vector<std::string>>();
+	}
+	for (size_t i = 0; i < vec_keyName.size(); ++i) {
+		keysText += QString::fromStdString(vec_keyName[i]);
+		if (i != vec_keyName.size() - 1) {
+			keysText += "+";
+		}
+	}
+
+	ui.lineEdit_shortcut_edit->setText(keysText);
+
+}	
 
 /**初始化翻译相关*/
 void Config_window::init_translate() {
@@ -248,45 +282,69 @@ static void printStdVector(const std::vector<uint32_t>& vec) {
 }
 #endif
 
+
+
+static int qtKeyToVk(QKeyEvent* event) {
+	int vk = event->nativeVirtualKey();
+	int sc = event->nativeScanCode();
+
+	// 根据扫描码区分左右Ctrl和左右Alt（以常见扫描码为例）
+	// 左Ctrl扫描码：0x1D
+	// 右Ctrl扫描码：0xE01D
+	// 左Alt扫描码：0x38
+	// 右Alt扫描码：0xE038
+
+	if (vk == VK_CONTROL) {
+		if (sc == 0x1D) return VK_LCONTROL;    //左Ctrl 162
+		else if (sc == 0xE01D || sc == 0x9D) return VK_RCONTROL; //右Ctrl 163
+	}
+	else if (vk == VK_MENU) {
+		if (sc == 0x38) return VK_LMENU;      //左Alt 164
+		else if (sc == 0xE038) return VK_RMENU; //右Alt 165
+	}
+	return vk;
+}
+
 /** 捕获快捷键 */
 bool Config_window::eventFilter(QObject* obj, QEvent* event) {
 	if (obj == ui.lineEdit_shortcut_edit) {
-
-		//TODO 禁用输入法
+		// 禁用输入法
+		ui.lineEdit_shortcut_edit->setAttribute(Qt::WA_InputMethodEnabled, false);
 
 		if (event->type() == QEvent::KeyPress) {
 			QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
-			int key = key_event->key();
+			int vk_key = qtKeyToVk(key_event);
 
-			// 忽略 Ctrl / Alt
-			if (key == Qt::Key_Control || key == Qt::Key_Alt) return true;
+			if (vk_key == 0) return true; // 跳过无效键
 
 			if (!recording) {
-				// 第一次按下
 				recording = true;
-				first_key_code = key;
+				first_key_code = vk_key;
 				shortcut_msg = ShortcutKeyMsg(); // 清空旧数据
 			}
 
-			if (shortcut_msg.key_value_serial_number.size() >= 3) return true;
+			if (shortcut_msg.key_value_serial_number.size() >= 3)
+				return true;
 
-			// 避免重复记录
-			if (std::find(shortcut_msg.key_value_serial_number.begin(),shortcut_msg.key_value_serial_number.end(), key) == shortcut_msg.key_value_serial_number.end()) {
+			if (std::find(shortcut_msg.key_value_serial_number.begin(),
+				shortcut_msg.key_value_serial_number.end(),
+				vk_key) == shortcut_msg.key_value_serial_number.end()) {
 
-				shortcut_msg.key_value_serial_number.push_back(key);
-				shortcut_msg.key_value_total += key;
+				shortcut_msg.key_value_serial_number.push_back(vk_key);
+				shortcut_msg.key_value_total += vk_key;
 
-				QString text = QKeySequence(key).toString(QKeySequence::NativeText).toUpper();
+				QString text = QKeySequence(key_event->key()).toString(QKeySequence::NativeText).toUpper();
 				if (text.isEmpty()) {
-					switch (key) {
-						case Qt::Key_Space: text = "SPACE"; break;
-						case Qt::Key_Tab: text = "TAB"; break;
-						default: text = QString("KEY_%1").arg(key);
+					switch (vk_key) {
+					case Qt::Key_Space: text = "SPACE"; break;
+					case Qt::Key_Tab:   text = "TAB"; break;
+					default:            text = QString("VK_%1").arg(vk_key); break;
 					}
 				}
+
 				shortcut_msg.str_key_list.push_back(text.toStdString());
 
-				// 更新显示
+				// 更新 UI 显示
 				QStringList key_strings;
 				for (const auto& s : shortcut_msg.str_key_list)
 					key_strings << QString::fromStdString(s);
@@ -298,10 +356,12 @@ bool Config_window::eventFilter(QObject* obj, QEvent* event) {
 
 		if (event->type() == QEvent::KeyRelease) {
 			QKeyEvent* key_event = static_cast<QKeyEvent*>(event);
-			int key = key_event->key();
+			int qt_key = key_event->key();
+			int vk_key = qtKeyToVk(key_event);
 
-			// 当第一个键释放，停止记录
-			if (recording && key == first_key_code) {
+			if (vk_key == 0) return true;
+
+			if (recording && vk_key == first_key_code) {
 				recording = false;
 				first_key_code = -1;
 
@@ -311,7 +371,7 @@ bool Config_window::eventFilter(QObject* obj, QEvent* event) {
 #endif
 			}
 
-			//写入配置
+			// 写入配置
 			json& json_config = main_widget->get_jsonConfig();
 			json_config[shortcut_key_msg] = shortcut_msg;
 			emit sig_checkBoxIsBootStart();
@@ -325,25 +385,50 @@ bool Config_window::eventFilter(QObject* obj, QEvent* event) {
 
 void Config_window::slot_checkBoxCtrlChanged(int state) {
 	json& json_config = main_widget->get_jsonConfig();
+
 	if (state == Qt::Checked) {
-		json_config[Ctrl] = true;
+		json_config["Ctrl"] = true;
+		json_config["Alt"] = false;
+
+		ui.checkBox_Alt->setCheckState(Qt::Unchecked);
+		ui.lineEdit_shortcut_edit->setEnabled(false); // 禁用输入框
+		ui.lineEdit_shortcut_edit->clear();
 	}
 	else if (state == Qt::Unchecked) {
-		json_config[Ctrl] = false;
+		json_config["Ctrl"] = false;
+
+		// 如果 Alt 也未勾选，启用输入框
+		if (ui.checkBox_Alt->checkState() == Qt::Unchecked) {
+			ui.lineEdit_shortcut_edit->setEnabled(true);
+		}
 	}
+
 	emit sig_checkBoxIsBootStart();
 }
 
 void Config_window::slot_checkBoxAltChanged(int state) {
 	json& json_config = main_widget->get_jsonConfig();
+
 	if (state == Qt::Checked) {
-		json_config[Alt] = true;
+		json_config["Alt"] = true;
+		json_config["Ctrl"] = false;
+
+		ui.checkBox_Ctrl->setCheckState(Qt::Unchecked);
+		ui.lineEdit_shortcut_edit->setEnabled(false); // 禁用输入框
+		ui.lineEdit_shortcut_edit->clear();
 	}
 	else if (state == Qt::Unchecked) {
-		json_config[Alt] = false;
+		json_config["Alt"] = false;
+
+		// 如果 Ctrl 也未勾选，启用输入框
+		if (ui.checkBox_Ctrl->checkState() == Qt::Unchecked) {
+			ui.lineEdit_shortcut_edit->setEnabled(true);
+		}
 	}
+
 	emit sig_checkBoxIsBootStart();
 }
+
 
 void Config_window::slot_spinBoxCtrlChanged(int val) {
 	json& json_config = main_widget->get_jsonConfig();

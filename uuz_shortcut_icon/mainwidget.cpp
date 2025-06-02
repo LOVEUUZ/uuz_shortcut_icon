@@ -46,6 +46,15 @@ MainWidget::MainWidget(QWidget* parent) : QWidget(parent) {
 
   //在这里设置一下日志天数，懒得创建新东西了
   Logger::getLogger().set_retention_days(json_config["log_retain_day"].get<int>());
+
+  //首次创建配置则直接打开配置界面
+  if (isFirstStart) {
+      show();
+      QTimer::singleShot(0, this, [&]() {
+          icons_inner_widget->slot_configWidgetOpen();
+      });
+	  isFirstStart = false;
+  }
 }
 
 MainWidget::~MainWidget() {}
@@ -163,32 +172,149 @@ void MainWidget::setKeyEvent() {
     std::cout << keyEvent.key << " - " << keyEvent.isPressed << "\n";
 #endif
 
-    static bool ctrlOrAltIsPressed = false;
-    if (keyEvent.key == shortcut_key_value_1 || ctrlOrAltIsPressed) { //左右alt和ctrl
-      ctrlOrAltIsPressed = true;
-      if (keyEvent.key == shortcut_key_value_1 && !keyEvent.isPressed) {  //松开ctrl或alt则结束判断
-	    // 定时器，延时修改第一个键的当前状态，因为当手速很快的时候还没来得及按下第二个键，第一个已经松开了
-        QTimer::singleShot(100, this, [this]() {
-            ctrlOrAltIsPressed = false;
-         });
-        return;  
-      }
-      if (keyEvent.key == shortcut_key_value_2 && keyEvent.isPressed && ctrlOrAltIsPressed) {   //第二个按键符合且是按下触发
-        if (isHidden()) {
-          this->raise();
-          //this->activateWindow();
-          show();
-        } else {
-	   	  hide();
+  //  static bool ctrlOrAltIsPressed = false;
+  //  if (keyEvent.key == shortcut_key_value_1 || ctrlOrAltIsPressed) { //左右alt和ctrl
+  //    ctrlOrAltIsPressed = true;
+  //    if (keyEvent.key == shortcut_key_value_1 && !keyEvent.isPressed) {  //松开ctrl或alt则结束判断
+	 //   // 定时器，延时修改第一个键的当前状态，因为当手速很快的时候还没来得及按下第二个键，第一个已经松开了
+  //      QTimer::singleShot(100, this, [this]() {
+  //          ctrlOrAltIsPressed = false;
+  //       });
+  //      return;  
+  //    }
+  //    if (keyEvent.key == shortcut_key_value_2 && keyEvent.isPressed && ctrlOrAltIsPressed) {   //第二个按键符合且是按下触发
+  //      if (isHidden()) {
+  //        this->raise();
+  //        //this->activateWindow();
+  //        show();
+  //      } else {
+	 //  	  hide();
+  //      }
+  //    } else if (keyEvent.key == shortcut_key_value_2 && !keyEvent.isPressed) {   //第二个按键符合并松开
+  //      return;
+  //    }
+  //  }
+  //  else {
+		//hide(); //隐藏主窗口
+  //  }
+	static std::vector<int> vec_curKey;
+    if (keyEvent.isPressed) {
+        // 按下添加
+		if (std::find(vec_curKey.begin(), vec_curKey.end(), keyEvent.key) == vec_curKey.end()) {    //重复检测
+            vec_curKey.push_back(keyEvent.key);
         }
-      } else if (keyEvent.key == shortcut_key_value_2 && !keyEvent.isPressed) {   //第二个按键符合并松开
-        return;
-      }
     }
     else {
-		hide(); //隐藏主窗口
+        // 松开时移除该键
+        auto it = std::find(vec_curKey.begin(), vec_curKey.end(), keyEvent.key);
+        if (it != vec_curKey.end()) {
+            vec_curKey.erase(it);
+        }
     }
-    
+
+#ifdef _DEBUG
+    std::cout << "[";
+    for (size_t i = 0; i < vec_curKey.size(); ++i) {
+        std::cout << vec_curKey[i];
+        if (i != vec_curKey.size() - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << std::endl;
+#endif
+
+
+	static bool isCtrlCheck = false; //配置是否勾选了Ctrl键作为触发键
+	static bool isAltCheck = false;
+	static int  CtrlCount = 0; //配置中存储的Ctrl键按下触发次数
+	static int  AltCount = 0;
+	static std::pair<int, std::vector<int>> pair_key; //用于存储当前按键配置
+	static bool isCtrlPress = false; //当前是否按下Ctrl键
+	static bool isAltPress = false;
+
+    //启动初始化配置缓存或者修改配置文件后重置缓存
+    if (is_changed) {
+        isCtrlCheck = json_config["Ctrl"].get<bool>();
+        isAltCheck = json_config["Alt"].get<bool>();
+        CtrlCount = json_config["CtrlCount"].get<int>();
+        AltCount = json_config["AltCount"].get<int>();
+        if (json_config.contains("shortcut_key_msg")) {
+            const auto& shortcut = json_config["shortcut_key_msg"];
+            if (shortcut.contains("key_value_total") && shortcut.contains("key_value_serial_number")) {
+                pair_key.first = shortcut["key_value_total"].get<int>(); //total 作为 key
+                pair_key.second = shortcut["key_value_serial_number"].get<std::vector<int>>(); //每个按键的序列作为 value
+            }
+        }
+		is_changed = false;
+    }
+
+	
+    if (!isVisible()) {
+        //非单ctrl和alt按键触发
+        if (pair_key.second.size() != 0) {
+            //每次触发事件都将当前队列中的内容与配置存储的按键序列进行对比
+            if (vec_curKey.size() == pair_key.second.size()) {
+                for (int i = 0; i < pair_key.second.size(); ++i) {
+                    if (std::find(vec_curKey.begin(), vec_curKey.end(), pair_key.second[i]) == vec_curKey.end()) {
+                        return;  // 只要有一个没找到就直接返回
+                    }
+                }
+                show();
+                return;
+            }
+        }
+
+	    //单独的ctrl和alt按键触发
+        if (keyEvent.key == 162 || keyEvent.key == 163 || keyEvent.key == 164 || keyEvent.key == 165) {
+            // 判断当前是Ctrl键（左162/右163）还是Alt键（左164/右165）
+            bool isCtrl = (keyEvent.key == 162 || keyEvent.key == 163);
+            bool isAlt = (keyEvent.key == 164 || keyEvent.key == 165);
+
+            static int ctrl_press_times = 0;
+            static int alt_press_times = 0;
+
+            // 当前为按下事件
+            if (keyEvent.isPressed) {
+                if (isCtrlCheck && isCtrl) {
+                    ++ctrl_press_times;
+
+                    int timeout = 200 * CtrlCount;  // 每次间隔 200ms，2次=400ms，3次=600ms
+                    QTimer::singleShot(timeout, this, [this]() {
+                        ctrl_press_times = 0;
+                        });
+
+                    if (ctrl_press_times >= CtrlCount && CtrlCount > 0) {
+                        ctrl_press_times = 0;
+                        show();
+                        return;
+                    }
+                }
+
+                if (isAltCheck && isAlt) {
+                    ++alt_press_times;
+
+                    int timeout = 200 * AltCount;
+                    QTimer::singleShot(timeout, this, [this]() {
+                        alt_press_times = 0;
+                        });
+
+                    if (alt_press_times >= AltCount && AltCount > 0) {
+                        alt_press_times = 0;
+                        show();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    else {
+        // 窗口已显示，且输入框没有焦点，按任意键隐藏窗口
+        if (!this->search_line->hasFocus() && keyEvent.isPressed) {
+            hide();
+            return;
+        }
+    }
+
   };
 
   windowsKeyHookEx = WindowsHookKeyEx::getWindowHook();
@@ -241,8 +367,16 @@ void MainWidget::showEvent(QShowEvent* event) {
 
   windowsMouseHook->installHook(); //安装鼠标钩子
 
-  //windows api，强制输入框获取焦点，参考：https://learn.microsoft.com/zh-cn/windows/win32/api/winuser/nf-winuser-setfocus
-  SetFocus((HWND)this->search_line->winId());
+  //TODO 暂时禁用，好像我根本用不到。。。而且还会扰乱新逻辑，唉，开摆
+  // 延迟 300ms 后强制输入框获取焦点
+  //QTimer::singleShot(500, this, [this]() {
+    //windows api，强制输入框获取焦点，参考：https://learn.microsoft.com/zh-cn/windows/win32/api/winuser/nf-winuser-setfocus
+   // SetFocus((HWND)this->search_line->winId());
+   //});
+  this->search_line->setEnabled(false);
+  QTimer::singleShot(500, this, [this]() {
+      this->search_line->setEnabled(true);
+   });
 
   QWidget::showEvent(event);
 }
@@ -276,7 +410,7 @@ void MainWidget::moveEvent(QMoveEvent* event) {
       QScreen* screen = screens[i];
       if (screen->geometry().contains(cursorPos)) {
 #ifdef _DEBUG
-                qDebug() << "当前在屏幕 ==> " << i;
+       qDebug() << "当前在屏幕 ==> " << i;
 #endif
 
         QPoint coordinate;
@@ -343,7 +477,16 @@ void MainWidget::init_coordinate() {
   // 读取文件内容
   file_config->seek(0);
   QString qstr_config_content = file_config->readAll();
+  std::string str_config_content;
+
   if (qstr_config_content.isEmpty()) {
+	isFirstStart = true;
+    //2025.6.2 添加自定义快捷键唤醒
+    json_config["Ctrl"] = true;
+    json_config["CtrlCount"] = 2;
+    json_config["Alt"] = false;
+    json_config["AltCount"] = 2;
+
     //添加日志的记录，避免读取保留天数的时候出错
     json_config["log_retain_day"] = 7;
 
@@ -384,10 +527,22 @@ void MainWidget::init_coordinate() {
     text_stream << QString::fromStdString(json_config.dump(4));
     return;
   }
+  else {
+	  //2025.6.2: 新增了一些配置项，检查是否存在，如果不存在打开配置界面,后续在这里追加
+      str_config_content = qstr_config_content.toStdString();
+      json_config = json::parse(str_config_content);
+      if (!json_config.contains("Ctrl") ||
+          !json_config.contains("CtrlCount") ||
+          !json_config.contains("Alt") ||
+          !json_config.contains("AltCount")) {
+          isFirstStart = true;
+      }
 
+      
+  }
 
-  std::string str_config_content = qstr_config_content.toStdString();
-  json_config                    = json::parse(str_config_content);
+  str_config_content = qstr_config_content.toStdString();
+  json_config        = json::parse(str_config_content);
 
   for (int i = 0; i < json_config["coordinate"].size(); ++i) {
     QPoint coordinate;
@@ -489,6 +644,11 @@ void MainWidget::slot_modifyConfig() {
   file_config->resize(0); // 清空文件
   QTextStream config_content(file_config);
   config_content << QString::fromStdString(json_config.dump(4));
+  is_changed = true; //标记配置文件已修改，重新加载配置文件
+}
+
+void MainWidget::slot_showConfigWidget() {
+  
 }
 
 #ifdef _DEBUG
