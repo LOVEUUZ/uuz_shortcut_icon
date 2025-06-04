@@ -264,42 +264,53 @@ void MainWidget::setKeyEvent() {
             }
         }
 
-	    //单独的ctrl和alt按键触发
+        //单独的ctrl和alt按键触发
         if (keyEvent.key == 162 || keyEvent.key == 163 || keyEvent.key == 164 || keyEvent.key == 165) {
-            // 判断当前是Ctrl键（左162/右163）还是Alt键（左164/右165）
             bool isCtrl = (keyEvent.key == 162 || keyEvent.key == 163);
             bool isAlt = (keyEvent.key == 164 || keyEvent.key == 165);
 
-            static int ctrl_press_times = 0;
-            static int alt_press_times = 0;
+            static int ctrl_press_count = 0;
+            static int alt_press_count = 0;
 
-            // 当前为按下事件
+            static bool ctrl_is_down = false;
+            static bool alt_is_down = false;
+
             if (keyEvent.isPressed) {
-                if (isCtrlCheck && isCtrl) {
-                    ++ctrl_press_times;
+                if (isCtrlCheck && isCtrl && !ctrl_is_down) {
+                    ctrl_is_down = true; // 标记已按下，防止重复计数
+                }
+                if (isAltCheck && isAlt && !alt_is_down) {
+                    alt_is_down = true;
+                }
+            }
+            else {
+                if (isCtrlCheck && isCtrl && ctrl_is_down) {
+                    ctrl_is_down = false;
+                    ctrl_press_count++;
 
-                    int timeout = 200 * CtrlCount;  // 每次间隔 200ms，2次=400ms，3次=600ms
+                    int timeout = 200 * CtrlCount;
                     QTimer::singleShot(timeout, this, [this]() {
-                        ctrl_press_times = 0;
+                        ctrl_press_count = 0;
                         });
 
-                    if (ctrl_press_times >= CtrlCount && CtrlCount > 0) {
-                        ctrl_press_times = 0;
+                    if (ctrl_press_count >= CtrlCount && CtrlCount > 0) {
+                        ctrl_press_count = 0;
                         show();
                         return;
                     }
                 }
 
-                if (isAltCheck && isAlt) {
-                    ++alt_press_times;
+                if (isAltCheck && isAlt && alt_is_down) {
+                    alt_is_down = false;
+                    alt_press_count++;
 
                     int timeout = 200 * AltCount;
                     QTimer::singleShot(timeout, this, [this]() {
-                        alt_press_times = 0;
+                        alt_press_count = 0;
                         });
 
-                    if (alt_press_times >= AltCount && AltCount > 0) {
-                        alt_press_times = 0;
+                    if (alt_press_count >= AltCount && AltCount > 0) {
+                        alt_press_count = 0;
                         show();
                         return;
                     }
@@ -308,12 +319,13 @@ void MainWidget::setKeyEvent() {
         }
     }
     else {
-        // 窗口已显示，且输入框没有焦点，按任意键隐藏窗口
-        if (!this->search_line->hasFocus() && keyEvent.isPressed) {
+        // 2. 窗口已显示，任意按键按下隐藏窗口
+        if (keyEvent.isPressed && !this->search_line->hasFocus()) {
             hide();
             return;
         }
     }
+
 
   };
 
@@ -591,9 +603,11 @@ void MainWidget::init_tray() {
   auto act_show = new QAction("Show", &trayMenu);
   // auto act_enable = new QAction("enable/disable", &trayMenu);
   auto act_exit = new QAction("Exit", &trayMenu);
+  auto act_restart = new QAction("Restart", &trayMenu);
 
   trayMenu.addAction(act_show);
   trayMenu.addAction(act_exit);
+  trayMenu.addAction(act_restart);
 
   // 设置托盘图标的上下文菜单
   trayIcon.setContextMenu(&trayMenu);
@@ -618,6 +632,14 @@ void MainWidget::init_tray() {
 
   connect(act_exit, &QAction::triggered, [&]() {
     QApplication::quit();
+  });
+
+  //重启
+  connect(act_restart, &QAction::triggered, [&]() {
+    QStringList arguments = QCoreApplication::arguments();
+    QString program = arguments.at(0);
+    QProcess::startDetached(program, arguments);
+    QCoreApplication::quit();
   });
 
   // 显示托盘图标
