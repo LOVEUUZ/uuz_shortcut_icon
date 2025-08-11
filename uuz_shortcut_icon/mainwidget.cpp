@@ -162,6 +162,12 @@ void MainWidget::init_shortcutKey() {
 
   //鼠标钩子
   setMouseEvent();
+
+  clear_show_count = new QTimer(this);
+  connect(clear_show_count, &QTimer::timeout, this, [&]() {
+    widget_show_count = 0;
+  });
+  clear_show_count->start(250); // 250ms 周期
 }
 
 
@@ -275,6 +281,8 @@ void MainWidget::setKeyEvent() {
             static bool ctrl_is_down = false;
             static bool alt_is_down = false;
 
+            //qDebug() << "key = " << keyEvent.key << "  ==> " << keyEvent.isPressed;
+
             if (keyEvent.isPressed) {
                 if (isCtrlCheck && isCtrl && !ctrl_is_down) {
                     ctrl_is_down = true; // 标记已按下，防止重复计数
@@ -290,10 +298,12 @@ void MainWidget::setKeyEvent() {
 
                     int timeout = 200 * CtrlCount;
                     QTimer::singleShot(timeout, this, [this]() {
+                        //qDebug() << "ctrl_press_count = " << ctrl_press_count << " 清零";
                         ctrl_press_count = 0;
                         });
 
                     if (ctrl_press_count >= CtrlCount && CtrlCount > 0) {
+                        //qDebug() << "ctrl_press_count = " << ctrl_press_count << " 清零并显示";
                         ctrl_press_count = 0;
                         show();
                         return;
@@ -389,6 +399,12 @@ void MainWidget::showEvent(QShowEvent* event) {
   QTimer::singleShot(500, this, [this]() {
       this->search_line->setEnabled(true);
    });
+
+  //2025.8.5 尝试用于缓解按住ctrl不放的情况下窗口疯狂隐藏和显示
+  widget_show_count++;
+  if (widget_show_count > 3) {
+      return;
+  }
 
   QWidget::showEvent(event);
 }
