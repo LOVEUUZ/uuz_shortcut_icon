@@ -275,7 +275,7 @@ void MainWidget::setKeyEvent() {
             bool isCtrl = (keyEvent.key == 162 || keyEvent.key == 163);
             bool isAlt = (keyEvent.key == 164 || keyEvent.key == 165);
 
-            static int ctrl_press_count = 0;
+            static std::atomic<int> ctrl_press_count{ 0 };
             static int alt_press_count = 0;
 
             static bool ctrl_is_down = false;
@@ -304,6 +304,14 @@ void MainWidget::setKeyEvent() {
 
                     if (ctrl_press_count >= CtrlCount && CtrlCount > 0) {
                         //qDebug() << "ctrl_press_count = " << ctrl_press_count << " 清零并显示";
+
+                        //2025.9.1 尝试用于缓解按住ctrl不放的情况下窗口疯狂隐藏和显示
+                        widget_show_count++;
+                        qDebug() << "widget_show_count = " << widget_show_count;
+                        if (widget_show_count >= 2) {
+                          qDebug() << "widget_show_count >= 2, 不显示窗口";
+                          return;
+                        }
                         ctrl_press_count = 0;
                         show();
                         return;
@@ -399,12 +407,6 @@ void MainWidget::showEvent(QShowEvent* event) {
   QTimer::singleShot(500, this, [this]() {
       this->search_line->setEnabled(true);
    });
-
-  //2025.8.5 尝试用于缓解按住ctrl不放的情况下窗口疯狂隐藏和显示
-  widget_show_count++;
-  if (widget_show_count > 3) {
-      return;
-  }
 
   QWidget::showEvent(event);
 }

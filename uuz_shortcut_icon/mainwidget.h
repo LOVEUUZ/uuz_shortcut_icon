@@ -9,6 +9,7 @@
 #include <QTimer>
 #include <QFont>
 #include <QSystemTrayIcon>
+#include <atomic>
 
 
 #include "ui_mainwidget.h"
@@ -69,7 +70,7 @@ class MainWidget : public QWidget {
     void                setKeyEvent();    //注册键盘事件
     void                setMouseEvent();  //注册鼠标事件
 
-    int                 widget_show_count;//尝试用于缓解按住ctrl不放的情况下窗口疯狂隐藏和显示
+    std::atomic<int>    widget_show_count;//尝试用于缓解按住ctrl不放的情况下窗口疯狂隐藏和显示
     QTimer*             clear_show_count;
 
     void showEvent(QShowEvent* event) override;
