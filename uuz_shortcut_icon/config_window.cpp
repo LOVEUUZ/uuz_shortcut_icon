@@ -54,7 +54,9 @@ Config_window::Config_window(QWidget* parent) :
 	ui.lineEdit_shortcut_edit->installEventFilter(this); 
 
 	//清空快捷键输入框按钮
+	//2026.04.20 清除快捷键后及时更新配置
 	connect(ui.btn_clear, &QPushButton::clicked, this, &Config_window::slot_clearButton_clicked);
+	connect(ui.btn_clear, &QPushButton::clicked, main_widget, &MainWidget::slot_modifyConfig);
 }
 
 Config_window::~Config_window() {}
@@ -402,6 +404,9 @@ void Config_window::slot_checkBoxCtrlChanged(int state) {
 			ui.lineEdit_shortcut_edit->setEnabled(true);
 		}
 	}
+	
+	//2026.04.20 Ctrl和Alt任意勾选后清除快捷键输入框的内容
+	ui.btn_clear->click();
 
 	emit sig_checkBoxIsBootStart();
 }
@@ -425,6 +430,9 @@ void Config_window::slot_checkBoxAltChanged(int state) {
 			ui.lineEdit_shortcut_edit->setEnabled(true);
 		}
 	}
+
+	//2026.04.20 Ctrl和Alt任意勾选后清除快捷键输入框的内容
+	ui.btn_clear->click();
 
 	emit sig_checkBoxIsBootStart();
 }

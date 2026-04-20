@@ -250,6 +250,9 @@ void MainWidget::setKeyEvent() {
                 pair_key.first = shortcut["key_value_total"].get<int>(); //total 作为 key
                 pair_key.second = shortcut["key_value_serial_number"].get<std::vector<int>>(); //每个按键的序列作为 value
             }
+        } else {
+            pair_key.first = 0;
+			pair_key.second.clear();
         }
 		is_changed = false;
     }
