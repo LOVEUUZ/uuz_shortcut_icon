@@ -25,8 +25,6 @@ Icons_inner_widget::Icons_inner_widget(QWidget* parent) :
   for (auto icon_button : vec_iconButton) {
     init_button_connect(icon_button);
   }
-
-  //if()
 }
 
 Icons_inner_widget::~Icons_inner_widget() {

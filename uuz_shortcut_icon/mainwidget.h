@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <dwmapi.h>
+
 #include <iostream>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -23,6 +25,18 @@
 
 #include "json.hpp"
 
+typedef struct _ACCENT_POLICY {
+    int AccentState;
+    int AccentFlags;
+    int GradientColor;
+    int AnimationId;
+} ACCENT_POLICY;
+
+typedef struct _WINDOWCOMPOSITIONATTRIBDATA {
+    int Attrib;
+    PVOID pvData;
+    SIZE_T cbData;
+} WINDOWCOMPOSITIONATTRIBDATA;
 
 class MainWidget : public QWidget {
     Q_OBJECT
@@ -75,6 +89,8 @@ class MainWidget : public QWidget {
 
     void showEvent(QShowEvent* event) override;
     void hideEvent(QHideEvent* event) override;
+	void enableWin11RoundCorner();        //开启win11圆角
+	void enableAcrylic();                 //开启毛玻璃效果
 
     //配置相关，目前主要是窗口坐标的记录
     void              moveEvent(QMoveEvent* event) override; //用于退出程序的时候进保存进配置文件，方便下一次启动的时候也是在该位置开启

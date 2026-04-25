@@ -96,7 +96,7 @@ void icon_button::mouseReleaseEvent(QMouseEvent* event) {
         emit sig_moveModifyConfig(closestIndex, ID);
 
 #ifdef _DEBUG
-				qDebug() << "closestIndex ==> " << closestIndex << "   old_index ==> " << ID;
+		qDebug() << "closestIndex ==> " << closestIndex << "   old_index ==> " << ID;
 #endif
 
         //记得及时更新自身的配置，特别的移动后需要修改索引id

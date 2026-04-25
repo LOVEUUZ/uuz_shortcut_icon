@@ -30,7 +30,8 @@ Config_window::Config_window(QWidget* parent) :
 
 	//开机自启配置修改
 	connect(ui.checkBox_is_boot_start, &QCheckBox::checkStateChanged, this, &Config_window::slot_checkBoxIsBootStart);
-	connect(this, &Config_window::sig_checkBoxIsBootStart, main_widget, &MainWidget::slot_modifyConfig);
+	connect(ui.checkBox_is_glass, &QCheckBox::checkStateChanged, this, &Config_window::slot_checkBoxIsGlass);
+	connect(this, &Config_window::sig_configUpdate, main_widget, &MainWidget::slot_modifyConfig);
 
 	//日志保留天数配置修改
 	connect(ui.spinBox_log_day, &QSpinBox::valueChanged, this, &Config_window::slot_spinBoxValueChanged);
@@ -77,16 +78,24 @@ void Config_window::init_config() {
 	//开机启动填充
 	if (!json_config.contains(is_boot_start)) {
 		json_config[is_boot_start] = false;
-		emit sig_checkBoxIsBootStart();
+		emit sig_configUpdate();
 	}
 
 	if (json_config.at(is_boot_start).get<bool>()) {
 		config_is_boot_start = true;
 		ui.checkBox_is_boot_start->setCheckState(Qt::Checked);
-	}
-	else {
+	} else {
 		config_is_boot_start = false;
 		ui.checkBox_is_boot_start->setCheckState(Qt::Unchecked);
+	}
+
+	if (!json_config.contains(is_glass)) {
+		json_config[is_glass] = false;
+		emit sig_configUpdate();
+	}
+	if (json_config.at(is_glass).get<bool>()) {
+		config_is_glass = true;
+		ui.checkBox_is_glass->setCheckState(Qt::Checked);
 	}
 
 	//todo 设置语言  翻译暂时没做
@@ -95,7 +104,7 @@ void Config_window::init_config() {
 	//日志保留天数填充
 	if (!json_config.contains(log_retain_day)) {
 		json_config[log_retain_day] = 7;
-		emit sig_checkBoxIsBootStart();
+		emit sig_configUpdate();
 	}
 	ui.spinBox_log_day->setValue(json_config[log_retain_day].get<int>());
 
@@ -225,7 +234,19 @@ void Config_window::slot_checkBoxIsBootStart(int state) {
 		}
 	}
 
-	emit sig_checkBoxIsBootStart();
+	emit sig_configUpdate();
+}
+
+//启用毛玻璃效果
+void Config_window::slot_checkBoxIsGlass(int state) {
+	json& json_config = main_widget->get_jsonConfig();
+	if (state == 0) {
+		json_config["is_glass"] = false;
+	}
+	else {
+		json_config["is_glass"] = true;
+	}
+	emit sig_configUpdate();
 }
 
 void Config_window::slot_spinBoxValueChanged(int day) {
@@ -233,7 +254,7 @@ void Config_window::slot_spinBoxValueChanged(int day) {
 	json_config[log_retain_day] = day;
 	Logger::getLogger().set_retention_days(7);
 
-	emit sig_checkBoxIsBootStart();
+	emit sig_configUpdate();
 }
 
 void Config_window::slot_openConfigPath() {
@@ -376,7 +397,7 @@ bool Config_window::eventFilter(QObject* obj, QEvent* event) {
 			// 写入配置
 			json& json_config = main_widget->get_jsonConfig();
 			json_config[shortcut_key_msg] = shortcut_msg;
-			emit sig_checkBoxIsBootStart();
+			emit sig_configUpdate();
 			return true;
 		}
 	}
@@ -408,7 +429,7 @@ void Config_window::slot_checkBoxCtrlChanged(int state) {
 	//2026.04.20 Ctrl和Alt任意勾选后清除快捷键输入框的内容
 	ui.btn_clear->click();
 
-	emit sig_checkBoxIsBootStart();
+	emit sig_configUpdate();
 }
 
 void Config_window::slot_checkBoxAltChanged(int state) {
@@ -434,20 +455,20 @@ void Config_window::slot_checkBoxAltChanged(int state) {
 	//2026.04.20 Ctrl和Alt任意勾选后清除快捷键输入框的内容
 	ui.btn_clear->click();
 
-	emit sig_checkBoxIsBootStart();
+	emit sig_configUpdate();
 }
 
 
 void Config_window::slot_spinBoxCtrlChanged(int val) {
 	json& json_config = main_widget->get_jsonConfig();
 	json_config[CtrlCount] = val;
-	emit sig_checkBoxIsBootStart();
+	emit sig_configUpdate();
 }
 
 void Config_window::slot_spinBoxAltChanged(int val) {
 	json& json_config = main_widget->get_jsonConfig();
 	json_config[AltCount] = val;
-	emit sig_checkBoxIsBootStart();
+	emit sig_configUpdate();
 }
 
 void Config_window::slot_clearButton_clicked(){
@@ -461,5 +482,5 @@ void Config_window::slot_clearButton_clicked(){
 		json_config.erase(shortcut_key_msg);
 	}
 
-	emit sig_checkBoxIsBootStart();
+	emit sig_configUpdate();
 }

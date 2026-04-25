@@ -1,4 +1,5 @@
 ﻿#include "mainwidget.h"
+#pragma comment(lib, "dwmapi.lib")
 
 using json                           = nlohmann::json;
 MainWidget* MainWidget::main_widget_ = nullptr;
@@ -6,8 +7,19 @@ MainWidget* MainWidget::main_widget_ = nullptr;
 MainWidget::MainWidget(QWidget* parent) : QWidget(parent) {
   // ui.setupUi(this);
   setObjectName("mainWidget");
-  // setWindowFlags(Qt::FramelessWindowHint);
   main_widget_ = this;
+
+  //this->setAttribute(Qt::WA_TranslucentBackground );
+  this->setAutoFillBackground(false);
+
+  this->setWindowFlags(
+      //Qt::FramelessWindowHint  |
+      Qt::Window 
+#ifdef NDEBUG
+      | Qt::WindowStaysOnTopHint
+#endif
+  );
+
 
   init_coordinate();
 
@@ -28,16 +40,16 @@ MainWidget::MainWidget(QWidget* parent) : QWidget(parent) {
   init_tray();
 
   //去掉最大化最小化。因为下面那个没生效
-  setWindowFlags(Qt::Dialog);
+  //setWindowFlags(Qt::Dialog);
 #ifdef NDEBUG
-  //置顶 禁用最大最小化
-  this->setWindowFlags(
-    (this->windowFlags() & ~Qt::WindowCloseButtonHint) // 移除关闭按钮
-    & ~Qt::WindowMinimizeButtonHint                    // 移除最小化按钮
-    & ~Qt::WindowMaximizeButtonHint                    // 移除最大化按钮
-    | Qt::WindowStaysOnTopHint                         // 置顶
-    | Qt::CustomizeWindowHint                          // 自定窗口
-  );
+  ////置顶 禁用最大最小化
+  //this->setWindowFlags(
+  //  (this->windowFlags() & ~Qt::WindowCloseButtonHint) // 移除关闭按钮
+  //  & ~Qt::WindowMinimizeButtonHint                    // 移除最小化按钮
+  //  & ~Qt::WindowMaximizeButtonHint                    // 移除最大化按钮
+  //  | Qt::WindowStaysOnTopHint                         // 置顶
+  //  | Qt::CustomizeWindowHint                          // 自定窗口
+  //);
 
 #endif
 
@@ -144,6 +156,55 @@ void MainWidget::init_layout() {
   // 自动调整窗口大小
   adjustSize();         // 调整窗口大小以适应内容
   setFixedSize(size()); // 将当前大小设置为固定大小
+
+  enableAcrylic();
+  enableWin11RoundCorner();
+}
+
+void MainWidget::enableAcrylic() {
+    HWND hwnd = (HWND)winId();
+
+    HMODULE hUser = GetModuleHandle(L"user32.dll");
+    if (!hUser) return;
+
+    auto func = (BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBDATA*))
+        GetProcAddress(hUser, "SetWindowCompositionAttribute");
+
+    if (!func) return;
+
+    ACCENT_POLICY policy = {};
+    policy.AccentState = 4;
+
+    // 透明度（0x00~0xFF）
+    policy.GradientColor = 0x66FFFFFF;
+
+    WINDOWCOMPOSITIONATTRIBDATA data;
+    data.Attrib = 19;
+    data.pvData = &policy;
+    data.cbData = sizeof(policy);
+
+    func(hwnd, &data);
+
+}
+
+void MainWidget::enableWin11RoundCorner() {
+    HWND hwnd = (HWND)winId();
+
+    const DWORD DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+
+    enum DWM_WINDOW_CORNER_PREFERENCE {
+        DWMWCP_DEFAULT = 0,
+        DWMWCP_DONOTROUND = 1,
+        DWMWCP_ROUND = 2,
+        DWMWCP_ROUNDSMALL = 3
+    };
+
+    DWM_WINDOW_CORNER_PREFERENCE pref = DWMWCP_ROUND;
+
+    DwmSetWindowAttribute(hwnd,
+        DWMWA_WINDOW_CORNER_PREFERENCE,
+        &pref,
+        sizeof(pref));
 }
 
 void MainWidget::init_shortcutKey() {
@@ -310,9 +371,9 @@ void MainWidget::setKeyEvent() {
 
                         //2025.9.1 尝试用于缓解按住ctrl不放的情况下窗口疯狂隐藏和显示
                         widget_show_count++;
-                        qDebug() << "widget_show_count = " << widget_show_count;
+                        /*qDebug() << "widget_show_count = " << widget_show_count;*/
                         if (widget_show_count >= 2) {
-                          qDebug() << "widget_show_count >= 2, 不显示窗口";
+                          //qDebug() << "widget_show_count >= 2, 不显示窗口";
                           return;
                         }
                         ctrl_press_count = 0;
@@ -358,7 +419,7 @@ void MainWidget::setKeyEvent() {
 void MainWidget::setMouseEvent() {
   //鼠标事件捕获部分
   windowsMouseHook = WindowsHookMouseEx::getWindowHook();
-  ////回调注册方法,当鼠标不在程序内部点击的时候，隐藏程序窗口
+  //回调注册方法,当鼠标不在程序内部点击的时候，隐藏程序窗口
   std::function<void()> func = [&]() {
     // 获取鼠标的全局坐标
     auto mouse_coordinate = QCursor::pos();
@@ -410,6 +471,20 @@ void MainWidget::showEvent(QShowEvent* event) {
   QTimer::singleShot(500, this, [this]() {
       this->search_line->setEnabled(true);
    });
+
+  //每次显示是否设置毛玻璃效果
+  if (json_config.contains("is_glass") && json_config["is_glass"].get<bool>()) {
+      setStyleSheet(
+          "#mainWidget {"
+          "background-color: rgba(240,240,240,80);"
+          "border-radius: 10px;"
+          "}"
+      );
+  }else {
+      setStyleSheet("");
+  }
+
+
 
   QWidget::showEvent(event);
 }
@@ -561,13 +636,15 @@ void MainWidget::init_coordinate() {
     return;
   }
   else {
-	  //2025.6.2: 新增了一些配置项，检查是否存在，如果不存在打开配置界面,后续在这里追加
+      //2025.6.2: 新增了一些配置项，检查是否存在，如果不存在打开配置界面,后续在这里追加
       str_config_content = qstr_config_content.toStdString();
       json_config = json::parse(str_config_content);
       if (!json_config.contains("Ctrl") ||
           !json_config.contains("CtrlCount") ||
           !json_config.contains("Alt") ||
-          !json_config.contains("AltCount")) {
+          !json_config.contains("AltCount") ||
+          !json_config.contains("is_glass")
+         ) {
           isFirstStart = true;
       }
 

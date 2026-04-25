@@ -36,6 +36,7 @@ private:
 	//json所需的key
 	const std::string shortcut_key_msg = "shortcut_key_msg";
 	const std::string is_boot_start    = "is_boot_start";
+	const std::string is_glass		   = "is_glass";
 	const std::string log_retain_day   = "log_retain_day";
 	const std::string Ctrl             = "Ctrl";
 	const std::string CtrlCount        = "CtrlCount";
@@ -44,6 +45,7 @@ private:
 
 	//配置
 	bool config_is_boot_start;
+	bool config_is_glass;
 
 	//来自主窗口的指针，负责配置修改
 	MainWidget* main_widget;
@@ -61,10 +63,11 @@ private:
 
 	
 signals:
-	void sig_checkBoxIsBootStart();
+	void sig_configUpdate();
 
 private slots:
 	void slot_checkBoxIsBootStart(int state);
+	void slot_checkBoxIsGlass(int state);
 	void slot_spinBoxValueChanged(int day);
 	void slot_openConfigPath();
 	void slot_aboutDialog();

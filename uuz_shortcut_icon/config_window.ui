@@ -44,20 +44,26 @@
        </spacer>
       </item>
       <item>
-       <widget class="QFrame" name="frame">
-        <property name="frameShape">
-         <enum>QFrame::Shape::StyledPanel</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Shadow::Raised</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="checkBox_is_boot_start">
-        <property name="text">
-         <string>开启自启动</string>
-        </property>
+       <widget class="QWidget" name="horizontalWidget" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="0,0">
+         <property name="spacing">
+          <number>20</number>
+         </property>
+         <item>
+          <widget class="QCheckBox" name="checkBox_is_boot_start">
+           <property name="text">
+            <string>开启自启动</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox_is_glass">
+           <property name="text">
+            <string>背景毛玻璃</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
       <item>
@@ -324,16 +330,6 @@
          </size>
         </property>
        </spacer>
-      </item>
-      <item>
-       <widget class="QFrame" name="frame_2">
-        <property name="frameShape">
-         <enum>QFrame::Shape::StyledPanel</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Shadow::Raised</enum>
-        </property>
-       </widget>
       </item>
      </layout>
     </widget>
