@@ -21,6 +21,7 @@
 #include "Search_line.h"
 #include "WindowsHookKeyEx.h"
 #include "WindowsHookMouseEx.h"
+#include "WindowsHookWinEventEx.h"
 #include "keyEvent.h"
 
 #include "json.hpp"
@@ -75,14 +76,16 @@ class MainWidget : public QWidget {
     QVBoxLayout* iconsLayout; //下半部分用来为icons_inner_widget设置内边距的布局
 
     //快捷呼出相关，暂定为连续按下两次ctrl
-    void                init_shortcutKey();
-    QTimer*             ctrlPressTimer;   //定时
-    int                 ctrlPressCount;   //计数
-    int                 ctrlReleaseCount; //计数
-    WindowsHookKeyEx*   windowsKeyHookEx; //windows键盘钩子
-    WindowsHookMouseEx* windowsMouseHook; //windows鼠标钩子
-    void                setKeyEvent();    //注册键盘事件
-    void                setMouseEvent();  //注册鼠标事件
+    void                   init_shortcutKey();
+    QTimer*                ctrlPressTimer;        //定时
+    int                    ctrlPressCount;        //计数
+    int                    ctrlReleaseCount;      //计数
+    WindowsHookKeyEx*      windowsKeyHookEx;      //windows键盘钩子
+    WindowsHookMouseEx*    windowsMouseHook;      //windows鼠标钩子
+	WindowsHookWinEventEx* WindowsHookWinEvent;   //windows窗口焦点钩子
+    void                   setKeyEvent();         //注册键盘事件
+    void                   setMouseEvent();       //注册鼠标事件
+    void                   setwindowsWinEvent();  //注册windows窗口焦点变更监听
 
     std::atomic<int>    widget_show_count;//尝试用于缓解按住ctrl不放的情况下窗口疯狂隐藏和显示
     QTimer*             clear_show_count;

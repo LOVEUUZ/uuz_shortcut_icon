@@ -83,6 +83,9 @@
     <ClCompile Include="WindowsHookKeyEx.cpp">
       <Filter>Source Files\Component</Filter>
     </ClCompile>
+    <ClCompile Include="WindowsHookWinEventEx.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resource\origin.jpg">
@@ -134,6 +137,9 @@
     </ClInclude>
     <ClInclude Include="json.hpp">
       <Filter>Source Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsHookWinEventEx.h">
+      <Filter>Header Files\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

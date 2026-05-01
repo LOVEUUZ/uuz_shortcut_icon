@@ -123,6 +123,7 @@
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">input</DynamicSource>
       <QtMocFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).moc</QtMocFileName>
     </ClCompile>
+    <ClCompile Include="WindowsHookWinEventEx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resource\origin.jpg" />
@@ -138,6 +139,7 @@
   <ItemGroup>
     <ClInclude Include="config.h" />
     <ClInclude Include="json.hpp" />
+    <ClInclude Include="WindowsHookWinEventEx.h" />
     <QtMoc Include="Search_line.h" />
     <QtMoc Include="resource.h" />
     <QtMoc Include="mainwidget.h" />

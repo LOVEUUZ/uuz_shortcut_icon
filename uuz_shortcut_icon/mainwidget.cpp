@@ -414,6 +414,10 @@ void MainWidget::setKeyEvent() {
   windowsKeyHookEx = WindowsHookKeyEx::getWindowHook();
   windowsKeyHookEx->installHook();
   windowsKeyHookEx->setFunc(func);
+
+  //2026.4.26 新增黑名单列表
+  setwindowsWinEvent();
+
 }
 
 void MainWidget::setMouseEvent() {
@@ -446,6 +450,37 @@ void MainWidget::setMouseEvent() {
 #ifdef _DEBUG
   windowsMouseHook->installHook(); //安装鼠标钩子。当窗口显示的时候安装，隐藏的时候卸载
 #endif
+}
+
+//黑名单判断
+void MainWidget::setwindowsWinEvent() {
+    WindowsHookWinEvent = WindowsHookWinEventEx::getWindowsHookwinevent();
+
+    WindowsHookWinEvent->installHook(
+        [this](DWORD pid, const std::string& name) {
+			//将这个回调放到主线程执行，避免在钩子线程执行界面相关的操作导致崩溃，同时也能避免频繁调用钩子函数时频繁操作界面导致的性能问题
+            QMetaObject::invokeMethod(this, [this,pid, name]() {    
+
+//#ifdef _DEBUG
+                qDebug() << "pid =" << pid << "name =" << QString::fromStdString(name);
+//#endif
+
+                static bool installed = true;
+
+                if (name == std::string("sai2.exe") || name.empty()) {
+                    if (installed) {
+                        WindowsHookKeyEx::getWindowHook()->unInstallHook();
+                        installed = false;
+                    }
+                } else {
+                    if (!installed) {
+                        WindowsHookKeyEx::getWindowHook()->installHook();
+                        installed = true;
+                    }
+                }
+            }, Qt::QueuedConnection);
+        }
+    );
 }
 
 void MainWidget::showEvent(QShowEvent* event) {

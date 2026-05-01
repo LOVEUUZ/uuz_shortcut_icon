@@ -46,6 +46,9 @@ private:
     static std::unordered_map<uint64_t, int> keyPressCount;  // 键位与计数器映射，计数器用于判断按下与松开
     static bool altPressed;                                  // 跟踪 Alt 键的状态
 
+    static DWORD lastPid;
+    static std::string lastProcessName;
+
     void messageLoop(); //循环windows键盘事件
 
     static std::string getKeyName(DWORD vkCode); //获取按键对应名称
