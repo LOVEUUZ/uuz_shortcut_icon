@@ -13,6 +13,7 @@
 #include "WindowsHookKeyEx.h"
 #include "WindowsHookMouseEx.h"
 #include "Logger.h"
+#include "OverlayWidget.h"
 #include <windows.h>
 
 class MainWidget;
@@ -76,4 +77,5 @@ private slots:
 	void slot_spinBoxCtrlChanged(int val);
 	void slot_spinBoxAltChanged(int val);
 	void slot_clearButton_clicked();
+	void slot_toolBtnWindowCapture();
 };

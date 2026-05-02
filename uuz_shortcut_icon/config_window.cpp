@@ -58,6 +58,9 @@ Config_window::Config_window(QWidget* parent) :
 	//2026.04.20 清除快捷键后及时更新配置
 	connect(ui.btn_clear, &QPushButton::clicked, this, &Config_window::slot_clearButton_clicked);
 	connect(ui.btn_clear, &QPushButton::clicked, main_widget, &MainWidget::slot_modifyConfig);
+
+	//2026.05.01 捕获窗口按钮事件绑定
+	connect(ui.toolBtn_windowCapture, &QToolButton::clicked, this, &Config_window::slot_toolBtnWindowCapture);
 }
 
 Config_window::~Config_window() {}
@@ -483,4 +486,32 @@ void Config_window::slot_clearButton_clicked(){
 	}
 
 	emit sig_configUpdate();
+}
+
+//2026.04.20 捕获窗口
+void Config_window::slot_toolBtnWindowCapture() {
+	auto& overlay = OverlayWidget::ptr_overlayWidget;
+
+	if (!overlay)
+	{
+		overlay = new OverlayWidget();
+		overlay->setAttribute(Qt::WA_DeleteOnClose);
+
+		connect(overlay, &QObject::destroyed, this, [this]() {
+			OverlayWidget::ptr_overlayWidget = nullptr;
+			});
+	}
+
+	connect(overlay, &OverlayWidget::sigWindowSelected, this, [this](DWORD pid, QString name) {
+			this->showNormal();
+			this->raise();
+			QMessageBox::information(this, "选中窗口", QString("PID: %1\nName: %2").arg(pid).arg(name));
+		});
+
+	connect(overlay, &OverlayWidget::sigCancel,this, [this]() {
+			this->showNormal();
+		});
+
+	this->hide();
+	overlay->startSelection();
 }

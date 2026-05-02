@@ -86,6 +86,24 @@
     <ClCompile Include="WindowsHookWinEventEx.cpp">
       <Filter>Source Files\Component</Filter>
     </ClCompile>
+    <ClCompile Include="HighlightFrame.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayWidget.cpp">
+      <Filter>Header Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="HighlightFrame.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayWidget.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayWidget.cpp">
+      <Filter>Header Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayWidget.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resource\origin.jpg">
@@ -161,6 +179,24 @@
     <QtUic Include="icons_inner_widget.ui">
       <Filter>Form Files</Filter>
     </QtUic>
+    <QtUic Include="HighlightFrame.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="HighlightFrame.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="OverlayWidget.ui">
+      <Filter>Header Files\Component</Filter>
+    </QtUic>
+    <QtUic Include="OverlayWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="OverlayWidget.ui">
+      <Filter>Header Files\Component</Filter>
+    </QtUic>
+    <QtUic Include="OverlayWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="config_window.h">
@@ -189,6 +225,12 @@
     </QtMoc>
     <QtMoc Include="logger.h">
       <Filter>Header Files\tools</Filter>
+    </QtMoc>
+    <QtMoc Include="HighlightFrame.h">
+      <Filter>Header Files\Component</Filter>
+    </QtMoc>
+    <QtMoc Include="OverlayWidget.h">
+      <Filter>Header Files\Component</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

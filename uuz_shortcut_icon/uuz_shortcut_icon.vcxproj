@@ -107,12 +107,14 @@
     <ClCompile Include="config.cpp" />
     <ClCompile Include="config_window.cpp" />
     <ClCompile Include="Everything.c" />
+    <ClCompile Include="HighlightFrame.cpp" />
     <ClCompile Include="IconButton.cpp" />
     <ClCompile Include="icons_inner_widget.cpp" />
     <ClCompile Include="keyEvent.cpp" />
     <ClCompile Include="logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mainwidget.cpp" />
+    <ClCompile Include="OverlayWidget.cpp" />
     <ClCompile Include="search_content.cpp" />
     <ClCompile Include="search_line.cpp" />
     <ClCompile Include="textedit.cpp" />
@@ -138,7 +140,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h" />
+    <QtMoc Include="HighlightFrame.h" />
     <ClInclude Include="json.hpp" />
+    <QtMoc Include="OverlayWidget.h" />
     <ClInclude Include="WindowsHookWinEventEx.h" />
     <QtMoc Include="Search_line.h" />
     <QtMoc Include="resource.h" />
@@ -157,9 +161,11 @@
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="config_window.ui" />
+    <QtUic Include="HighlightFrame.ui" />
     <QtUic Include="icons_inner_widget.ui" />
     <QtUic Include="icon_button.ui" />
     <QtUic Include="mainwidget.ui" />
+    <QtUic Include="OverlayWidget.ui" />
     <QtUic Include="search_content.ui" />
     <QtUic Include="Search_line.ui" />
   </ItemGroup>
