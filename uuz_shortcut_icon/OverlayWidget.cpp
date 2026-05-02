@@ -77,10 +77,8 @@ void OverlayWidget::updateSelection() {
         return;
     }
 
-    // ===== 取消 =====
-    if ((GetAsyncKeyState(VK_RBUTTON) & 0x8000) ||
-        (GetAsyncKeyState(VK_ESCAPE) & 0x8000)) {
-
+    // ===== 右键取消 | esc取消 =====
+    if ((GetAsyncKeyState(VK_RBUTTON) & 0x8000) || (GetAsyncKeyState(VK_ESCAPE) & 0x8000)) {
         handleCancel();
         return;
     }

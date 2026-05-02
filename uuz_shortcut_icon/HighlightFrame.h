@@ -6,8 +6,7 @@
 #include <QPainter>
 
 
-class HighlightFrame : public QWidget
-{
+class HighlightFrame : public QWidget {
 	Q_OBJECT
 
 public:

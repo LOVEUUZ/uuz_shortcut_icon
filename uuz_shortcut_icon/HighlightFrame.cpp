@@ -1,7 +1,6 @@
 #include "HighlightFrame.h"
 
 HighlightFrame::HighlightFrame(QWidget* parent) : QWidget(parent) {
-
     setWindowFlags(Qt::FramelessWindowHint |
         Qt::WindowStaysOnTopHint |
         Qt::Tool);

@@ -492,26 +492,40 @@ void Config_window::slot_clearButton_clicked(){
 void Config_window::slot_toolBtnWindowCapture() {
 	auto& overlay = OverlayWidget::ptr_overlayWidget;
 
-	if (!overlay)
-	{
+	if (!overlay) {
 		overlay = new OverlayWidget();
 		overlay->setAttribute(Qt::WA_DeleteOnClose);
 
 		connect(overlay, &QObject::destroyed, this, [this]() {
 			OverlayWidget::ptr_overlayWidget = nullptr;
-			});
+		});
 	}
 
 	connect(overlay, &OverlayWidget::sigWindowSelected, this, [this](DWORD pid, QString name) {
+			/*
+			* 这里曾经在多显示器上出现过很离谱的bug，现象如下：
+			* 显示器1中无论是否选取窗口，退出遮罩层后关闭配置窗口，会导致进程崩溃
+			*	从日志来看，是鼠标hook的问题。会先卸载，然后重新安装一次
+			* 显示器2中就是正常日志，会先安装鼠标hook然后卸载
+			* 
+			* 完全不清楚原因，重新清理编译也一样，但是开关了下显示器后该bug就不存在了
+			*/
+			main_widget->showNormal();	
+			main_widget->raise(); 
 			this->showNormal();
 			this->raise();
 			QMessageBox::information(this, "选中窗口", QString("PID: %1\nName: %2").arg(pid).arg(name));
-		});
+			qInfo() << "tmptest!!!!!!";
+	});
 
 	connect(overlay, &OverlayWidget::sigCancel,this, [this]() {
+			main_widget->showNormal(); 
+			main_widget->raise();
 			this->showNormal();
-		});
+			this->raise();
+	});
 
-	this->hide();
+	this->showMinimized();
+	main_widget->showMinimized();
 	overlay->startSelection();
 }
