@@ -6,6 +6,7 @@
 #include <QSpinBox>
 #include <QTextEdit>
 #include <QDialog>
+#include <QSettings>
 
 #include "mainwidget.h"
 #include "ui_config_window.h"

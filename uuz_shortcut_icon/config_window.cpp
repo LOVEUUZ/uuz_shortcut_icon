@@ -167,19 +167,52 @@ void Config_window::init_translate() {
 	ui.label_filterSuffix->setText(tr("过滤后缀"));
 }
 
+//#define USE_AUTOSTART_REGISTRY   // 注册表
+//#define USE_AUTOSTART_SHORTCUT   //shell:startup
+#define USE_AUTOSTART_TASK         // 任务计划
 
 /** 开机自启设置 */
-void Config_window::slot_checkBoxIsBootStart(int state) {
+void Config_window::slot_checkBoxIsBootStart(int state)
+{
 	json& json_config = main_widget->get_jsonConfig();
-	//未勾选,取消开机启动
-	if (state == 0 && config_is_boot_start) {
-		json_config[is_boot_start] = false;
-		config_is_boot_start = false;
-		{
-			QString targetFilePath = QCoreApplication::applicationFilePath();
-			QString startupDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/Startup";
-			QString shortcutFilePath = startupDir + "/" + QFileInfo(targetFilePath).baseName() + ".lnk";
 
+	bool enable = (state == 2);
+
+	if (enable == config_is_boot_start)
+		return;
+
+	config_is_boot_start = enable;
+	json_config["is_boot_start"] = enable;
+
+#ifdef USE_AUTOSTART_REGISTRY
+	// ===== 注册表启动 =====
+	{
+		QString appName = QCoreApplication::applicationName();
+		QString appPath = QCoreApplication::applicationFilePath().replace("/", "\\");
+
+		QSettings reg(
+			"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+			QSettings::NativeFormat
+		);
+
+		if (enable) {
+			reg.setValue(appName, "\"" + appPath + "\"");
+			qInfo() << "注册表开机自启设置成功";
+		}
+		else {
+			reg.remove(appName);
+			qInfo() << "注册表开机自启取消成功";
+		}
+	}
+
+#elif defined(USE_AUTOSTART_SHORTCUT)
+	// ===== 启动文件夹快捷方式 (程序修改为管理员权限后失效)=====
+	{
+		QString targetFilePath = QCoreApplication::applicationFilePath();
+		QString startupDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/Startup";
+		QString shortcutFilePath = startupDir + "/" + QFileInfo(targetFilePath).baseName() + ".lnk";
+
+		if (!enable) {
 			QFile shortcutFile(shortcutFilePath);
 			if (shortcutFile.exists() && shortcutFile.remove()) {
 				qInfo() << "取消开机启动设置成功";
@@ -189,29 +222,19 @@ void Config_window::slot_checkBoxIsBootStart(int state) {
 				QMessageBox::warning(this, tr("警告"), tr("取消开机启动设置失败"));
 			}
 		}
-	}
-	//勾选，设置开机启动
-	else if (state == 2 && !config_is_boot_start) {
-		json_config["is_boot_start"] = true;
-		config_is_boot_start = true;
-		{
-			const QString& targetFilePath = QCoreApplication::applicationFilePath();
-			const QString& shortcutFilePath = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) +
-				"/Startup"
-				+ "/" + QFileInfo(targetFilePath).baseName() + ".lnk";
-			const QString& description = "";
-			QFile           shortcutFile(shortcutFilePath);
-
-			if (shortcutFile.exists()) {
-				qInfo() << "开机启动设置成功.";
-			}
-
+		else {
 			QString vbsScript = QDir::temp().absoluteFilePath("createShortcut.vbs");
-			QFile   file(vbsScript);
-			if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+			QFile file(vbsScript);
+
+			if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+				qWarning() << "Failed to create VBS file.开机启动设置失败";
+			}
+			else {
 				QTextStream out(&file);
-				QString     targetPath = targetFilePath;
-				QString     shortcutPath = shortcutFilePath;
+
+				QString targetPath = targetFilePath;
+				QString shortcutPath = shortcutFilePath;
+
 				targetPath.replace("/", "\\");
 				shortcutPath.replace("/", "\\");
 
@@ -219,24 +242,52 @@ void Config_window::slot_checkBoxIsBootStart(int state) {
 				out << "sLinkFile = \"" << shortcutPath << "\"\n";
 				out << "Set oLink = oWS.CreateShortcut(sLinkFile)\n";
 				out << "oLink.TargetPath = \"" << targetPath << "\"\n";
-				out << "oLink.WorkingDirectory = \"" << QFileInfo(targetPath).absolutePath().replace("/", "\\") << "\"\n";
-				if (!description.isEmpty()) {
-					out << "oLink.Description = \"" << description << "\"\n";
-				}
+				out << "oLink.WorkingDirectory = \""
+					<< QFileInfo(targetPath).absolutePath().replace("/", "\\") << "\"\n";
 				out << "oLink.Save\n";
-				file.close();
-			}
-			else {
-				qWarning() << "Failed to create VBS file.开机启动设置失败";
-			}
 
-			QProcess process;
-			process.start("wscript", QStringList() << vbsScript);
-			process.waitForFinished();
-			file.remove();
+				file.close();
+
+				QProcess process;
+				process.start("wscript", QStringList() << vbsScript);
+				process.waitForFinished();
+
+				file.remove();
+
+				qInfo() << "开机启动设置成功";
+			}
 		}
 	}
 
+#elif defined(USE_AUTOSTART_TASK)
+	{
+		QString appPath = QCoreApplication::applicationFilePath().replace("/", "\\");
+		QString workDir = QFileInfo(appPath).absolutePath().replace("/", "\\");
+		QString taskName = "uuz_shortcut_icon_AutoStart";
+
+		QProcess process;
+
+		if (enable) {
+			// cmd /c "cd /d 工作目录 && 启动程序"
+			QString taskCmd = QString("cmd /c start \"\" /D \"%1\" \"%2\"").arg(workDir).arg(appPath);
+			process.start("schtasks", { "/create", "/tn", taskName, "/tr", taskCmd, "/sc", "onlogon", "/rl", "highest", "/f" });
+			process.waitForFinished();
+			if (process.exitCode() == 0) {
+				qInfo() << "任务计划开机自启设置成功";
+			} else {
+				qWarning() << "任务计划设置失败:" << process.readAllStandardError() << process.readAllStandardOutput();
+			}
+		} else {
+			process.start("schtasks", { "/delete", "/tn", taskName, "/f" });
+			process.waitForFinished();
+			if (process.exitCode() == 0) {
+				qInfo() << "任务计划开机自启已取消";
+			} else {
+				qWarning() << "删除任务失败:" << process.readAllStandardError() << process.readAllStandardOutput();
+			}
+		}
+	}
+#endif
 	emit sig_configUpdate();
 }
 
@@ -515,7 +566,6 @@ void Config_window::slot_toolBtnWindowCapture() {
 			this->showNormal();
 			this->raise();
 			QMessageBox::information(this, "选中窗口", QString("PID: %1\nName: %2").arg(pid).arg(name));
-			qInfo() << "tmptest!!!!!!";
 	});
 
 	connect(overlay, &OverlayWidget::sigCancel,this, [this]() {
