@@ -19,6 +19,7 @@
 #include "icons_inner_widget.h"
 #include "search_content.h"
 #include "Search_line.h"
+#include "config_window.h"
 #include "WindowsHookKeyEx.h"
 #include "WindowsHookMouseEx.h"
 #include "WindowsHookWinEventEx.h"
@@ -39,6 +40,7 @@ typedef struct _WINDOWCOMPOSITIONATTRIBDATA {
     SIZE_T cbData;
 } WINDOWCOMPOSITIONATTRIBDATA;
 
+
 class MainWidget : public QWidget {
     Q_OBJECT
 
@@ -46,6 +48,7 @@ class MainWidget : public QWidget {
     friend Search_line;
     friend icon_button;
     friend Search_content;
+    friend class Config_window;     //不知道为什么不加class会报错。该h对应cpp只判断，不修改本字段
 
   public:
     MainWidget(QWidget* parent = nullptr);
@@ -62,6 +65,7 @@ class MainWidget : public QWidget {
     QStackedWidget*     stacked_widget;      //用来包装下面两个窗口
     Icons_inner_widget* icons_inner_widget;  //图标显示窗口
     Search_content*     search_inner_widget; //搜索内容窗口
+    Config_window*      config_window;       //配置窗口
 
     //搜索栏相关功能
     void    init_search_line();

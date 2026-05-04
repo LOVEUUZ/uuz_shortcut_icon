@@ -12,6 +12,8 @@ Config_window::Config_window(QWidget* parent) :
 	if (main_widget == nullptr)
 		qFatal("main_widget 为空!!!");
 
+	main_widget->config_window = this;
+
 	// 先卸载钩子，记得关闭该页面的时候重新加上钩子
 	WindowsHookKeyEx::getWindowHook()->unInstallHook();
 	WindowsHookMouseEx::getWindowHook()->unInstallHook();
@@ -63,7 +65,9 @@ Config_window::Config_window(QWidget* parent) :
 	connect(ui.toolBtn_windowCapture, &QToolButton::clicked, this, &Config_window::slot_toolBtnWindowCapture);
 }
 
-Config_window::~Config_window() {}
+Config_window::~Config_window() {
+	main_widget->config_window = nullptr;
+}
 
 void Config_window::closeEvent(QCloseEvent* event) {
 	WindowsHookKeyEx::getWindowHook()->installHook();
@@ -72,6 +76,7 @@ void Config_window::closeEvent(QCloseEvent* event) {
 	qDebug() << "钩子挂上成功";
 #endif
 	QWidget::closeEvent(event);
+	this->deleteLater();
 }
 
 /**读取配置并赋值*/
@@ -565,7 +570,7 @@ void Config_window::slot_toolBtnWindowCapture() {
 			main_widget->raise(); 
 			this->showNormal();
 			this->raise();
-			QMessageBox::information(this, "选中窗口", QString("PID: %1\nName: %2").arg(pid).arg(name));
+			//QMessageBox::information(this, "选中窗口", QString("PID: %1\nName: %2").arg(pid).arg(name));
 	});
 
 	connect(overlay, &OverlayWidget::sigCancel,this, [this]() {

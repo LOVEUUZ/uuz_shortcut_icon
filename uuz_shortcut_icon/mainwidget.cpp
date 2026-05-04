@@ -148,6 +148,7 @@ void MainWidget::init_layout() {
   stacked_widget->addWidget(icons_inner_widget);
   stacked_widget->addWidget(search_inner_widget);
 
+  config_window = nullptr;    //打开配置窗口在配置窗口的构造中进行处理，该文件只负责判断是否存在
 
   // 5. 添加上部和下部布局到主布局
   v_search_and_grid->addLayout(topLayout);      // 将上部布局添加到主布局
@@ -462,12 +463,12 @@ void MainWidget::setwindowsWinEvent() {
             QMetaObject::invokeMethod(this, [this,pid, name]() {    
 
 //#ifdef _DEBUG
-                qDebug() << "pid =" << pid << "name =" << QString::fromStdString(name);
+                //qDebug() << "pid =" << pid << "name =" << QString::fromStdString(name);
 //#endif
 
                 static bool installed = true;
 
-                if (name == std::string("sai2.exe") || name.empty()) {
+                if (name == std::string("sai2.exe") || name.empty() || name.find(std::string("Endfield")) != std::string::npos) {
                     if (installed) {
                         WindowsHookKeyEx::getWindowHook()->unInstallHook();
                         installed = false;
@@ -494,7 +495,11 @@ void MainWidget::showEvent(QShowEvent* event) {
     }
   }
 
-  windowsMouseHook->installHook(); //安装鼠标钩子
+  //2026.05.04 在配置中窗口选择器选中从最小化恢复会触发showEvent，但此时还处于配置窗口页面，所以不能捕获鼠标监听，否则点击窗口外部会触发隐藏最后崩溃
+  if (config_window == nullptr) {
+      windowsMouseHook->installHook(); //安装鼠标钩子
+  }
+  
 
   //TODO 暂时禁用，好像我根本用不到。。。而且还会扰乱新逻辑，唉，开摆
   // 延迟 300ms 后强制输入框获取焦点
