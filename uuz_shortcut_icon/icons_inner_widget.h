@@ -58,7 +58,7 @@ private:
     QVector<icon_button*>   vec_iconButton;   //每个按钮的指针
 
 
-    QPushButton* q_push_button_arr[x][y];
+    QPushButton*             q_push_button_arr[x][y];
     QVector<QPair<int, int>> vec_coordinate; //icon_button的左上角坐标
     QRect                    first_icon_coordinate;
 
@@ -66,7 +66,7 @@ private:
 
     //配置文件相关
     QString         file_path;
-    QFile* file_config;
+    QFile*          file_config;
     QString         qstr_config_content;
     std::string     str_config_content;
     QVector<Config> vec_config;

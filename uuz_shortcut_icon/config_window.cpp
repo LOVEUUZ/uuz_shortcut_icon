@@ -63,6 +63,8 @@ Config_window::Config_window(QWidget* parent) :
 
 	//2026.05.01 捕获窗口按钮事件绑定
 	connect(ui.toolBtn_windowCapture, &QToolButton::clicked, this, &Config_window::slot_toolBtnWindowCapture);
+
+	refreshWhitelistTable();
 }
 
 Config_window::~Config_window() {
@@ -104,6 +106,11 @@ void Config_window::init_config() {
 	if (json_config.at(is_glass).get<bool>()) {
 		config_is_glass = true;
 		ui.checkBox_is_glass->setCheckState(Qt::Checked);
+	}
+
+	if (!json_config.contains(whitelist)) {
+		json_config[whitelist] = nlohmann::json::array();
+		emit sig_configUpdate();
 	}
 
 	//todo 设置语言  翻译暂时没做
@@ -170,6 +177,124 @@ void Config_window::init_translate() {
 	ui.btn_openFilePath->setText(tr("打开配置文件目录"));
 	ui.label_filterPath->setText(tr("过滤路径"));
 	ui.label_filterSuffix->setText(tr("过滤后缀"));
+}
+
+void Config_window::addWhitelist(const QString& name, const QString& exePath, const QString& className, DWORD pid, const QString& title) {
+	//避免重复添加，只要 name 一致就认为重复
+	json& json_config = main_widget->get_jsonConfig();
+	bool exists = false;
+	if (json_config.contains("whitelist") && json_config["whitelist"].is_array()) {
+		for (auto& item : json_config["whitelist"]) {
+			if (item.contains("name") && item["name"] == name.toStdString()) {
+				exists = true;
+				break;
+			}
+		}
+	}
+
+	//添加到json中，并更新白名单缓存
+	if (!exists) {
+		json_config["whitelist"].push_back({
+			{"name", name.toStdString()},
+			{"exePath", exePath.toStdString()},
+			{"className", className.toStdString()},
+			{"pid", pid},
+			{"title", title.toStdString()},
+			{"time", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss").toStdString()}
+			});
+		emit sig_configUpdate();
+	}
+
+	refreshWhitelistTable();
+	emit sig_configUpdate();
+}
+
+void Config_window::removeWhitelist(int row) {
+	auto& json_config = main_widget->get_jsonConfig();
+	if (!json_config.contains("whitelist") || !json_config["whitelist"].is_array())
+		return;
+
+	auto& arr = json_config["whitelist"];
+	if (row < 0 || row >= arr.size())
+		return;
+
+	arr.erase(arr.begin() + row);
+
+	refreshWhitelistTable();
+	emit sig_configUpdate();
+}
+
+void Config_window::refreshWhitelistTable() {
+	auto& json_config = main_widget->get_jsonConfig();
+	auto* table = ui.tableWidget_whitelist;
+	table->setRowCount(0);  // 清空表
+	table->setColumnCount(2); //两列
+
+	if (!json_config.contains("whitelist") || !json_config["whitelist"].is_array())
+		return;
+
+	QStringList headers;
+	headers << "Name" << "移除";
+	table->setHorizontalHeaderLabels(headers);
+	table->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);	//固定列
+	table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+	table->setColumnWidth(0, 200);
+	table->setColumnWidth(1, 40);
+
+	int row = 0;
+	for (auto& item : json_config["whitelist"]) {
+		QString name = QString::fromStdString(item.value("name", ""));
+		QString exe = QString::fromStdString(item.value("exePath", ""));
+
+		table->insertRow(row);
+		//第1列：名称 
+		table->setItem(row, 0, new QTableWidgetItem(name));
+		//第2列：删除按钮
+		QPushButton* btn = new QPushButton(QStringLiteral("×"), table);
+		btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+		btn->setStyleSheet(R"(
+		 QPushButton {
+		 	border: none;
+		 	background: transparent;
+		 	font-size: 18px;
+		 	font-weight: bold;
+		 }
+		 
+		 QPushButton:hover {
+		 	background: rgba(255, 0, 0, 40);
+		 	color: red;
+		 }
+		 
+		 QPushButton:pressed {
+		 	background: rgba(255, 0, 0, 80);
+		 }
+	   )");
+
+		// 容器（让按钮铺满整个cell）
+		QWidget* container = new QWidget(table);
+		QHBoxLayout* layout = new QHBoxLayout(container);
+		layout->setContentsMargins(0, 0, 0, 0);
+		layout->setSpacing(0);
+		layout->addWidget(btn);
+		container->setLayout(layout);
+		table->setCellWidget(row, 1, container);
+
+		// 删除
+		connect(btn, &QPushButton::clicked, this, [this, btn]() {
+			for (int row = 0; row < ui.tableWidget_whitelist->rowCount(); ++row) {
+				QWidget* w = ui.tableWidget_whitelist->cellWidget(row, 1);
+				if (!w) 
+					continue;
+					
+				QPushButton* findBtn = w->findChild<QPushButton*>();
+				if (findBtn == btn) {
+					removeWhitelist(row);
+					break;
+				}
+			}
+		});
+		row++;
+	}
 }
 
 //#define USE_AUTOSTART_REGISTRY   // 注册表
@@ -557,27 +682,33 @@ void Config_window::slot_toolBtnWindowCapture() {
 		});
 	}
 
-	connect(overlay, &OverlayWidget::sigWindowSelected, this, [this](DWORD pid, QString name) {
-			/*
-			* 这里曾经在多显示器上出现过很离谱的bug，现象如下：
-			* 显示器1中无论是否选取窗口，退出遮罩层后关闭配置窗口，会导致进程崩溃
-			*	从日志来看，是鼠标hook的问题。会先卸载，然后重新安装一次
-			* 显示器2中就是正常日志，会先安装鼠标hook然后卸载
-			* 
-			* 完全不清楚原因，重新清理编译也一样，但是开关了下显示器后该bug就不存在了
-			*/
-			main_widget->showNormal();	
-			main_widget->raise(); 
-			this->showNormal();
-			this->raise();
-			//QMessageBox::information(this, "选中窗口", QString("PID: %1\nName: %2").arg(pid).arg(name));
+	connect(overlay, &OverlayWidget::sigWindowSelected, this, [this](QString name, QString exePath, QString className, DWORD pid, QString title) {
+		addWhitelist(name, exePath, className, pid, title);
+
+		main_widget->showNormal();
+		main_widget->raise();
+		this->showNormal();
+		this->raise();
+			
+		/*
+		* 这里曾经在多显示器上出现过很离谱的bug，现象如下：
+		* 显示器1中无论是否选取窗口，退出遮罩层后关闭配置窗口，会导致进程崩溃
+		*	从日志来看，是鼠标hook的问题。会先卸载，然后重新安装一次
+		* 显示器2中就是正常日志，会先安装鼠标hook然后卸载
+		* 
+		* 完全不清楚原因，重新清理编译也一样，但是开关了下显示器后该bug就不存在了
+		*/
+		main_widget->showNormal();	
+		main_widget->raise(); 
+		this->showNormal();
+		this->raise();
 	});
 
 	connect(overlay, &OverlayWidget::sigCancel,this, [this]() {
-			main_widget->showNormal(); 
-			main_widget->raise();
-			this->showNormal();
-			this->raise();
+		main_widget->showNormal(); 
+		main_widget->raise();
+		this->showNormal();
+		this->raise();
 	});
 
 	this->showMinimized();

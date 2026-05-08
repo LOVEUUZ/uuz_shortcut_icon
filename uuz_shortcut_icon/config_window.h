@@ -34,12 +34,16 @@ private:
 	Ui::Config_windowClass ui;
 	void                   init_config();
 	void                   init_translate();
+	void				   addWhitelist(const QString& name, const QString& exePath, const QString& className, DWORD pid, const QString& title);
+	void				   removeWhitelist(int row);
+	void				   refreshWhitelistTable();
 
 	//json所需的key
 	const std::string shortcut_key_msg = "shortcut_key_msg";
 	const std::string is_boot_start    = "is_boot_start";
 	const std::string is_glass		   = "is_glass";
 	const std::string log_retain_day   = "log_retain_day";
+	const std::string whitelist		   = "whitelist";
 	const std::string Ctrl             = "Ctrl";
 	const std::string CtrlCount        = "CtrlCount";
 	const std::string Alt              = "Alt";
@@ -48,6 +52,8 @@ private:
 	//配置
 	bool config_is_boot_start;
 	bool config_is_glass;
+
+	//QMap<int, QMap<QSting,QSting>>
 
 	//来自主窗口的指针，负责配置修改
 	MainWidget* main_widget;

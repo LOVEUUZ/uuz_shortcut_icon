@@ -89,9 +89,6 @@
     <ClCompile Include="HighlightFrame.cpp">
       <Filter>Source Files\Component</Filter>
     </ClCompile>
-    <ClCompile Include="OverlayWidget.cpp">
-      <Filter>Header Files\Component</Filter>
-    </ClCompile>
     <ClCompile Include="HighlightFrame.cpp">
       <Filter>Source Files\Component</Filter>
     </ClCompile>
@@ -100,6 +97,9 @@
     </ClCompile>
     <ClCompile Include="OverlayWidget.cpp">
       <Filter>Header Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayWidget.cpp">
+      <Filter>Source Files\Component</Filter>
     </ClCompile>
     <ClCompile Include="OverlayWidget.cpp">
       <Filter>Source Files\Component</Filter>
@@ -186,13 +186,13 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="OverlayWidget.ui">
-      <Filter>Header Files\Component</Filter>
-    </QtUic>
-    <QtUic Include="OverlayWidget.ui">
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="OverlayWidget.ui">
       <Filter>Header Files\Component</Filter>
+    </QtUic>
+    <QtUic Include="OverlayWidget.ui">
+      <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="OverlayWidget.ui">
       <Filter>Form Files</Filter>

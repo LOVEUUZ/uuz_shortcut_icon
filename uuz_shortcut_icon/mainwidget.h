@@ -12,6 +12,7 @@
 #include <QFont>
 #include <QSystemTrayIcon>
 #include <atomic>
+#include <QPointer>
 
 
 #include "ui_mainwidget.h"
@@ -91,6 +92,9 @@ class MainWidget : public QWidget {
     void                   setMouseEvent();       //注册鼠标事件
     void                   setwindowsWinEvent();  //注册windows窗口焦点变更监听
 
+    void                   configUpdate();        //重要: 后续配置变更触发操作放这里
+    void                   configUpdateWhitelistCache();        //重要: 后续配置变更触发操作放这里
+
     std::atomic<int>    widget_show_count;//尝试用于缓解按住ctrl不放的情况下窗口疯狂隐藏和显示
     QTimer*             clear_show_count;
 
@@ -110,6 +114,7 @@ class MainWidget : public QWidget {
     uint64_t          shortcut_key_value_2 = 65; //唤醒快捷键
 	bool			  is_changed = true; //配置是否被修改过，及时更新缓存
 	bool			  isFirstStart = false;
+    QSet<QString>     whitelist_cache;
 
   public:
     nlohmann::json& get_jsonConfig() { return json_config; }

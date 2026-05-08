@@ -42,7 +42,7 @@ void WindowsHookWinEventEx::uninstallHook() {
 }
 
 //注册到系统中的回调，接收事件通知
-void CALLBACK WindowsHookWinEventEx::WinEventProc (HWINEVENTHOOK,DWORD event,HWND hwnd,LONG,LONG,DWORD,DWORD) {
+void CALLBACK WindowsHookWinEventEx::WinEventProc(HWINEVENTHOOK,DWORD event,HWND hwnd,LONG,LONG,DWORD,DWORD) {
 	if (event != EVENT_SYSTEM_FOREGROUND || !hwnd)      //只关心前台窗口事件，并且窗口句柄有效
         return;
 

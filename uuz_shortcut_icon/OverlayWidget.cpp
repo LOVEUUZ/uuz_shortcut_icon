@@ -95,13 +95,26 @@ void OverlayWidget::handleMouseClick(HWND hwnd) {
         return;
     }
 
-    // ===== µ¯È·ÈÏ¿ò =====
+    QString exePath;
+    getProcessPath(pid, exePath);
+
+    QString className = getClassNameStr(hwnd);
+    QString title = getWindowTitleStr(hwnd);
+
+    // µ¯È·ÈÏ¿ò
     QMessageBox box(this);
-    box.setText(QString("PID: %1\nprocess: %2").arg(pid).arg(name));
+    box.setWindowTitle("Select window");
+    box.setText(QString("PID: %1\nProcess: %2\n\nPath: %3\nClass: %4\nTitle: %5")
+        .arg(pid)
+        .arg(name)
+        .arg(exePath)
+        .arg(className)
+        .arg(title)
+    );
     box.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
 
     if (box.exec() == QMessageBox::Ok) {
-        emit sigWindowSelected(pid, name);
+        emit sigWindowSelected(name, exePath, className, pid, title);
         stopSelection();
     }
     else {
@@ -138,8 +151,37 @@ bool OverlayWidget::getProcessInfo(HWND hwnd, DWORD& pid, QString& name) {
     return true;
 }
 
+bool OverlayWidget::getProcessPath(DWORD pid, QString& path) {
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (!hProcess) return false;
+
+    WCHAR buffer[MAX_PATH] = { 0 };
+    DWORD size = MAX_PATH;
+
+    if (QueryFullProcessImageNameW(hProcess, 0, buffer, &size)) {
+        path = QString::fromWCharArray(buffer);
+        CloseHandle(hProcess);
+        return true;
+    }
+
+    CloseHandle(hProcess);
+    return false;
+}
+
+QString OverlayWidget::getClassNameStr(HWND hwnd) {
+    WCHAR buf[256] = { 0 };
+    GetClassNameW(hwnd, buf, 256);
+    return QString::fromWCharArray(buf);
+}
+
+QString OverlayWidget::getWindowTitleStr(HWND hwnd) {
+    WCHAR buf[512] = { 0 };
+    GetWindowTextW(hwnd, buf, 512);
+    return QString::fromWCharArray(buf);
+}
+
 void OverlayWidget::paintEvent(QPaintEvent* event) {
     QPainter p(this);
-    p.fillRect(rect(), QColor(0, 0, 0, 100)); // °ëÍ¸Ã÷ÕÚÕÖ
+    p.fillRect(rect(), QColor(0, 0, 0, 100)); // ÕÚÕÖ
 }
 

@@ -414,7 +414,7 @@
         <item>
          <widget class="QLabel" name="label_2">
           <property name="text">
-           <string>黑名单 (换行隔开, 不确定请用选取工具-&gt;</string>
+           <string>白名单 (换行隔开, 不确定请用选取工具-&gt;</string>
           </property>
          </widget>
         </item>
@@ -428,7 +428,7 @@
        </layout>
       </item>
       <item>
-       <widget class="QTextEdit" name="textEdit_blacklist"/>
+       <widget class="QTableWidget" name="tableWidget_whitelist"/>
       </item>
       <item>
        <spacer name="verticalSpacer_3">

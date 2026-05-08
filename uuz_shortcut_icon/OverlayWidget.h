@@ -33,13 +33,23 @@ private:
 	void handleMouseClick(HWND hwnd);
 	void handleCancel();
 	bool getProcessInfo(HWND hwnd, DWORD& pid, QString& name);
+	bool getProcessPath(DWORD pid, QString& path);
+	QString getClassNameStr(HWND hwnd);
+	QString getWindowTitleStr(HWND hwnd);
 
 protected:
 	void paintEvent(QPaintEvent* event) override;
 
 
 signals:
-	void sigWindowSelected(DWORD pid, QString name);
+	/*
+	* name 程序名称(非任务管理器显示的)
+	* exePath 可执行文件完整路径
+	* className 窗口类名，暂时没用(同一程序基本固定,可区分同路径不同窗口类型)
+	* pid 仅调试用
+	* title 仅调试用
+	*/
+	void sigWindowSelected(QString name, QString exePath, QString className, DWORD pid, QString title);
 	void sigCancel();
 
 };

@@ -24,6 +24,9 @@ MainWidget::MainWidget(QWidget* parent) : QWidget(parent) {
   init_coordinate();
 
   init_shortcutKey();
+  
+  //2026.4.26 新增白名单列表
+  setwindowsWinEvent();
 
   init_layout();
 
@@ -415,10 +418,6 @@ void MainWidget::setKeyEvent() {
   windowsKeyHookEx = WindowsHookKeyEx::getWindowHook();
   windowsKeyHookEx->installHook();
   windowsKeyHookEx->setFunc(func);
-
-  //2026.4.26 新增黑名单列表
-  setwindowsWinEvent();
-
 }
 
 void MainWidget::setMouseEvent() {
@@ -453,35 +452,50 @@ void MainWidget::setMouseEvent() {
 #endif
 }
 
-//黑名单判断
+//白名单判断
 void MainWidget::setwindowsWinEvent() {
+    configUpdateWhitelistCache();
     WindowsHookWinEvent = WindowsHookWinEventEx::getWindowsHookwinevent();
 
-    WindowsHookWinEvent->installHook(
-        [this](DWORD pid, const std::string& name) {
-			//将这个回调放到主线程执行，避免在钩子线程执行界面相关的操作导致崩溃，同时也能避免频繁调用钩子函数时频繁操作界面导致的性能问题
-            QMetaObject::invokeMethod(this, [this,pid, name]() {    
+    WindowsHookWinEvent->installHook([this](DWORD pid, const std::string& name) {
+	    //将这个回调放到主线程执行，避免在钩子线程执行界面相关的操作导致崩溃，同时也能避免频繁调用钩子函数时频繁操作界面导致的性能问题
+        QMetaObject::invokeMethod(this, [this,pid, name]() {    
 
-//#ifdef _DEBUG
-                //qDebug() << "pid =" << pid << "name =" << QString::fromStdString(name);
-//#endif
+#ifdef _DEBUG
+        qDebug() << "pid =" << pid << "name =" << QString::fromStdString(name);
+#endif
 
-                static bool installed = true;
+        static bool installed = true;
 
-                if (name == std::string("sai2.exe") || name.empty() || name.find(std::string("Endfield")) != std::string::npos) {
-                    if (installed) {
-                        WindowsHookKeyEx::getWindowHook()->unInstallHook();
-                        installed = false;
-                    }
-                } else {
-                    if (!installed) {
-                        WindowsHookKeyEx::getWindowHook()->installHook();
-                        installed = true;
-                    }
+            if (whitelist_cache.contains(QString::fromStdString(name))) {
+                if (installed) {
+                    WindowsHookKeyEx::getWindowHook()->unInstallHook();
+                    installed = false;
                 }
-            }, Qt::QueuedConnection);
+            } else {
+                if (!installed) {
+                    WindowsHookKeyEx::getWindowHook()->installHook();
+                    installed = true;
+                }
+            }
+        }, Qt::QueuedConnection);
+     });
+}
+
+//重要: 后续配置变更触发操作放这里
+void MainWidget::configUpdate() {
+    configUpdateWhitelistCache();
+}
+
+void MainWidget::configUpdateWhitelistCache() {
+    whitelist_cache.clear();
+    if (json_config.contains("whitelist") && json_config["whitelist"].is_array()) {
+        for (auto& item : json_config["whitelist"]) {
+            if (item.contains("name")) {
+                whitelist_cache.insert(QString::fromStdString(item["name"]));
+            }
         }
-    );
+    }
 }
 
 void MainWidget::showEvent(QShowEvent* event) {
@@ -683,7 +697,8 @@ void MainWidget::init_coordinate() {
           !json_config.contains("CtrlCount") ||
           !json_config.contains("Alt") ||
           !json_config.contains("AltCount") ||
-          !json_config.contains("is_glass")
+          !json_config.contains("is_glass") ||
+          !json_config.contains("whitelist")
          ) {
           isFirstStart = true;
       }
@@ -799,12 +814,19 @@ void MainWidget::slot_onTrayIconActivated(QSystemTrayIcon::ActivationReason reas
   }
 }
 
-/**槽，主要是设置界面修改json触发这里*/
+/**槽，主要是设置界面修改json触发这里 */
 void MainWidget::slot_modifyConfig() {
   file_config->resize(0); // 清空文件
   QTextStream config_content(file_config);
+
+#ifdef _DEBUG
+  qDebug() << QString::fromStdString(json_config.dump(4));
+#endif
+
   config_content << QString::fromStdString(json_config.dump(4));
   is_changed = true; //标记配置文件已修改，重新加载配置文件
+
+  configUpdate();
 }
 
 void MainWidget::slot_showConfigWidget() {
