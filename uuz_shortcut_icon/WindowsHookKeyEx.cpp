@@ -15,24 +15,24 @@ WindowsHookKeyEx* WindowsHookKeyEx::getWindowHook() {
 }
 
 void WindowsHookKeyEx::installHook() {
-  // std::cout << "Install KEY hook\n";
+  std::lock_guard<std::mutex> lock(hookMutex);
+  if (installed) return;  // 已经安装，直接返回
   qInfo() << "Install KEY hook";
   getWindowHook();
   hook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, nullptr, 0);
   if (hook == nullptr) {
-    // std::cerr << "Failed to install KEY hook" << "\n";
-    qWarning() << "Install KEY hook";
+    qWarning() << "Install KEY hook failed";
     std::exit(0);
   }
-
-  // std::cout << "Install KEY hook successful\n";
+  installed = true;
+  stopRequested = false;
   qInfo() << "Install KEY hook successful";
   // 消息循环在单独的线程中运行
   msgLoopThread = std::thread(&WindowsHookKeyEx::messageLoop, this);
 }
 
 void WindowsHookKeyEx::unInstallHook() {
-  // std::cout << "unInstall KEY hook\n";
+  std::lock_guard<std::mutex> lock(hookMutex);
   qInfo() << "unInstall KEY hook";
   if (hook != nullptr) {
     stopRequested = true;
@@ -41,12 +41,14 @@ void WindowsHookKeyEx::unInstallHook() {
     PostThreadMessage(msgLoopThreadId, WM_QUIT, 0, 0);
 
     if (msgLoopThread.joinable()) {
-      msgLoopThread.detach();
+      msgLoopThread.join();
     }
 
-    UnhookWindowsHookEx(hook);
-    hook = nullptr;
-
+    if (hook != nullptr) {
+        UnhookWindowsHookEx(hook);
+        hook = nullptr;
+    }
+    installed = false;
     qInfo() << "unInstall KEY hook successful";
   }
 }

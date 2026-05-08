@@ -43,6 +43,9 @@ private:
     std::mutex                    mtx_write;
     std::function<void(KeyEvent)> func = nullptr; //存储当前接收的策略
 
+    std::mutex                    hookMutex;
+    std::atomic<bool>             installed{ false };
+
     static std::unordered_map<uint64_t, int> keyPressCount;  // 键位与计数器映射，计数器用于判断按下与松开
     static bool altPressed;                                  // 跟踪 Alt 键的状态
 

@@ -6,6 +6,7 @@
 #include <atomic>
 #include <QObject>
 #include <QDebug>
+#include <mutex>
 
 class WindowsHookMouseEx : public QObject {
   public:
@@ -29,4 +30,6 @@ class WindowsHookMouseEx : public QObject {
     std::function<void()> func; // 存储当前接收的策略
     std::thread           hookThread;
     std::atomic<bool>     running;
+    std::mutex            hookMutex;
+    DWORD                 threadId = 0;
 };
