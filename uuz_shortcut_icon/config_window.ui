@@ -414,7 +414,7 @@
         <item>
          <widget class="QLabel" name="label_2">
           <property name="text">
-           <string>白名单 (换行隔开, 不确定请用选取工具-&gt;</string>
+           <string>白名单                                   选取工具</string>
           </property>
          </widget>
         </item>

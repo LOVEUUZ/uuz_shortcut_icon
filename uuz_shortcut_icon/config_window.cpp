@@ -464,7 +464,7 @@ void Config_window::slot_aboutDialog() {
 	QVBoxLayout* mainLayout = new QVBoxLayout(&aboutDialog);
 
 	QLabel* linkLabel = new QLabel(&aboutDialog);
-	linkLabel->setText("<a href=\"https://github.com/LOVEUUZ/shortcut_key\">https://github.com/LOVEUUZ/shortcut_key</a>");
+	linkLabel->setText("<a href=\"https://github.com/LOVEUUZ/uuz_shortcut_icon\">https://github.com/LOVEUUZ/uuz_shortcut_icon</a>");
 	linkLabel->setOpenExternalLinks(true);
 
 	QPushButton* closeButton = new QPushButton(tr("关闭"), &aboutDialog);

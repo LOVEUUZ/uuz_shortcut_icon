@@ -1,5 +1,7 @@
 # 一款随时随地通过快捷键呼唤出自定义抽屉的快捷工具
 
+#### v1.3 添加白名单功能
+
 #### v1.21 添加毛玻璃背景效果选项
 
 #### v1.11	已修复✔️ 新问题: 当多屏状态下从a屏拖动到b屏会导致卡顿然后闪退，等待修复
@@ -15,6 +17,8 @@
 * c++ >= 17
 
 ## 功能
+✔️ 白名单功能，焦点位于白名单内的时候不会响应
+
 ✔️ 可将任意文件或任意文件夹通过放置于抽屉单机打开
 
 ✔️ 文件夹和文件通过默认应用打开，exe直接打开
@@ -62,6 +66,8 @@
 ### 6.设置界面演示
 ![1_设置界面演示](https://github.com/LOVEUUZ/res/blob/main/uuz_shortcut_icon/1_%E8%AE%BE%E7%BD%AE%E7%95%8C%E9%9D%A2%E6%BC%94%E7%A4%BA.gif?raw=true)
 
+### 7.白名单功能
+![1_白名单功能](https://raw.githubusercontent.com/LOVEUUZ/res/refs/heads/main/uuz_shortcut_icon/1_%E7%99%BD%E5%90%8D%E5%8D%95%E5%8A%9F%E8%83%BD.gif)
 
 ## 下载地址
 https://github.com/LOVEUUZ/uuz_shortcut_icon/releases
