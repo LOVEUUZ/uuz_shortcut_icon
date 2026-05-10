@@ -149,6 +149,7 @@
     <QtMoc Include="HighlightFrame.h" />
     <ClInclude Include="json.hpp" />
     <QtMoc Include="OverlayWidget.h" />
+    <ClInclude Include="resource1.h" />
     <ClInclude Include="WindowsHookWinEventEx.h" />
     <QtMoc Include="Search_line.h" />
     <QtMoc Include="resource.h" />
@@ -180,6 +181,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="uuz_shortcut_icon.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
