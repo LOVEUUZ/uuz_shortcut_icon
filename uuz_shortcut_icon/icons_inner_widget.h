@@ -31,6 +31,9 @@ public:
     Icons_inner_widget(QWidget* parent = nullptr);
     ~Icons_inner_widget() override;
 
+    // Qt 拖放与 Windows 原生拖放共用相同的校验和配置保存逻辑。
+    bool addDroppedFile(const QString& fileName, const QPoint& position);
+
 private:
     // Ui::Icons_inner_widgetClass ui;
     void paintEvent(QPaintEvent* event) override;
@@ -41,6 +44,7 @@ private:
     void dropEvent(QDropEvent* event) override;               //处理拖动释放到窗口的事件
 
     void handleDroppedItem(const QString& fileName, int index); //构建入的文件或文件夹的配置，并处理
+    int emptyDropIndex(const QPoint& position) const;
 
 
     static constexpr int x = 8;         //一排8个
@@ -108,6 +112,8 @@ public slots:
     // void slot_config_widget_close();            //关闭配置页面
 
     signals:
+
+    void fileDropAcceptanceChanged();
 
 #ifdef _DEBUG
     void sig_action_show_move(bool &is_lock);            //界面移动功能锁定

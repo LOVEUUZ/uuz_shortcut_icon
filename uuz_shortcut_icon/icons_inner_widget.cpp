@@ -206,12 +206,13 @@ void Icons_inner_widget::dragEnterEvent(QDragEnterEvent* event) {
     qDebug() << "拖入";
 #endif
   //当有拖入内容且只有一个内容的时候，接受
-  if (event->mimeData()->hasUrls()) {
+  if (acceptDrops() && event->mimeData()->hasUrls()) {
     QList<QUrl> urlList = event->mimeData()->urls();
-    if (urlList.size() == 1) {
+    if (urlList.size() == 1 && urlList.first().isLocalFile()) {
       event->acceptProposedAction();
       is_showDashedBorder = true;
       update();
+      return;
     }
   }
   QWidget::dragEnterEvent(event);
@@ -231,65 +232,64 @@ void Icons_inner_widget::dragLeaveEvent(QDragLeaveEvent* event) {
 
 /**处理拖动在窗口内移动的事件*/
 void Icons_inner_widget::dragMoveEvent(QDragMoveEvent* event) {
-  //计算鼠标落点，获取对应索引，判断当前位置是否已被占据，如果有，则不显示虚线，且释放会放弃本次拖动
-  for (int i = 0; i < vec_coordinate.size(); ++i) {
-    const auto & coordinate = vec_coordinate.at(i);
-    QRect        rect(coordinate.first, coordinate.second, 95, 95);
-    //找到目前鼠标停留的坐标与之对应的按钮预留位
-    if (rect.contains(event->position().toPoint())) {
-      //判断当前位置上是否已经有其他图标了，如果有，则放弃本次移动事件
-      if (map_index_button.contains(i)) {
-        is_showDashedBorder = false;
-        // is_icon_overlap = true;
-#ifdef _DEBUG
-                qDebug() << "图标重叠";
-#endif
-      }
-      else {
-        // is_icon_overlap = false;
-        is_showDashedBorder = true;
-      }
-    }
-  }
+  const auto urls = event->mimeData()->urls();
+  is_showDashedBorder = acceptDrops() && urls.size() == 1 && urls.first().isLocalFile()
+      && emptyDropIndex(event->position().toPoint()) >= 0;
+  if (is_showDashedBorder) event->acceptProposedAction();
+  else event->ignore();
   update();
-  QWidget::dragMoveEvent(event);
 }
 
 /**处理拖动释放的事件*/
 void Icons_inner_widget::dropEvent(QDropEvent* event) {
-  int index = -1; //存储释放鼠标的时候当前格子索引
-  //计算鼠标落点，获取对应索引，判断当前位置是否已被占据，如果有，则不显示虚线，且释放会放弃本次拖动
-  for (int i = 0; i < vec_coordinate.size(); ++i) {
-    const auto & coordinate = vec_coordinate.at(i);
-    QRect        rect(coordinate.first, coordinate.second, 95, 95);
-    //找到目前鼠标停留的坐标与之对应的按钮预留位
-    if (rect.contains(event->position().toPoint())) {
-      //判断当前位置上是否已经有其他图标了，如果有，则放弃本次移动事件
-      if (map_index_button.contains(i)) {
-#ifdef _DEBUG
-                qDebug() << "图标重叠放弃本次拖动事件";
-#endif
-        return; //如果重叠放弃本次拖动事件
-      }
-      index = i;
-    }
+  const auto urls = event->mimeData()->urls();
+  if (urls.size() == 1 && urls.first().isLocalFile()
+      && addDroppedFile(urls.first().toLocalFile(), event->position().toPoint())) {
+    event->acceptProposedAction();
   }
-
-  if (index == -1) return;
-
-  if (event->mimeData()->hasUrls()) {
-    QList<QUrl> urlList = event->mimeData()->urls();
-    //就算是多个也只要第一个(正常来说在dragEnterEvent已经做了过滤了，所以这里出现多个反而是有问题)
-    auto fileName = urlList.at(0).toLocalFile();
-    qInfo() << "拖入文件路径: " << fileName;
-
-    //处理新增
-    handleDroppedItem(fileName, index);
+  else {
+    event->ignore();
   }
-
   is_showDashedBorder = false;
   update();
-  QWidget::dropEvent(event);
+}
+
+int Icons_inner_widget::emptyDropIndex(const QPoint& position) const {
+  if (!rect().contains(position)) return -1;
+  for (int i = 0; i < vec_coordinate.size(); ++i) {
+    const auto & coordinate = vec_coordinate.at(i);
+    const QRect cell(coordinate.first, coordinate.second, icon_button_size, icon_button_size);
+    if (cell.contains(position)) {
+      return map_index_button.contains(i) ? -1 : i;
+    }
+  }
+  return -1;
+}
+
+bool Icons_inner_widget::addDroppedFile(const QString& fileName, const QPoint& position) {
+  is_showDashedBorder = false;
+  update();
+  if (!acceptDrops() || !isVisible() || !isEnabled()) {
+    qWarning() << "[FileDrop] rejected: grid unavailable; acceptDrops=" << acceptDrops()
+               << "visible=" << isVisible() << "enabled=" << isEnabled();
+    return false;
+  }
+  const int index = emptyDropIndex(position);
+  if (index < 0) {
+    qWarning() << "[FileDrop] rejected: outside a cell or cell occupied; position=" << position
+               << "grid rect=" << rect();
+    return false;
+  }
+  const QFileInfo fileInfo(fileName);
+  if (fileName.isEmpty() || !fileInfo.isAbsolute()
+      || !(fileInfo.isFile() || fileInfo.isDir())) {
+    qWarning() << "[FileDrop] rejected: invalid or inaccessible file/folder:" << fileName;
+    return false;
+  }
+
+  qInfo() << "拖入文件路径: " << fileName;
+  handleDroppedItem(fileName, index);
+  return true;
 }
 
 /**构建Config，修改配置并进行回写*/
@@ -713,6 +713,9 @@ void Icons_inner_widget::slot_unInstallHook() {
     is_install_hook = true;
     setAcceptDrops(false);
   }
+  is_showDashedBorder = false;
+  update();
+  emit fileDropAcceptanceChanged();
 }
 
 

@@ -100,6 +100,10 @@ class MainWidget : public QWidget {
 
     void showEvent(QShowEvent* event) override;
     void hideEvent(QHideEvent* event) override;
+    bool event(QEvent* event) override;
+    bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
+    void updateNativeFileDrops();
+    bool native_file_drops_ = false;
 	void enableWin11RoundCorner();        //开启win11圆角
 	void enableAcrylic();                 //开启毛玻璃效果
 

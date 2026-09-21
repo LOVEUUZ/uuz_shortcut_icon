@@ -1,5 +1,30 @@
 ﻿#include "mainwidget.h"
 #pragma comment(lib, "dwmapi.lib")
+#include <QApplication>
+#include <QScopeGuard>
+#include <shellapi.h>
+#include <ole2.h>
+#include <string>
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "advapi32.lib")
+
+namespace {
+bool isProcessElevated() {
+  HANDLE token = nullptr;
+  if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+    qWarning() << "Cannot query process elevation:" << GetLastError();
+    return false;
+  }
+  TOKEN_ELEVATION elevation = {};
+  DWORD size = 0;
+  const BOOL ok = GetTokenInformation(token, TokenElevation, &elevation, sizeof(elevation), &size);
+  const DWORD error = ok ? ERROR_SUCCESS : GetLastError();
+  CloseHandle(token);
+  if (!ok) qWarning() << "Cannot read process elevation:" << error;
+  return ok && elevation.TokenIsElevated;
+}
+}
 
 using json                           = nlohmann::json;
 MainWidget* MainWidget::main_widget_ = nullptr;
@@ -31,6 +56,13 @@ MainWidget::MainWidget(QWidget* parent) : QWidget(parent) {
   init_layout();
 
   init_search_line();
+
+  native_file_drops_ = isProcessElevated();
+  connect(icons_inner_widget, &Icons_inner_widget::fileDropAcceptanceChanged,
+          this, &MainWidget::updateNativeFileDrops);
+  connect(stacked_widget, &QStackedWidget::currentChanged,
+          this, &MainWidget::updateNativeFileDrops);
+  updateNativeFileDrops();
 
   connect(this, &MainWidget::sig_moveFocus, this, &MainWidget::slot_moveFocus);
 
@@ -73,6 +105,106 @@ MainWidget::MainWidget(QWidget* parent) : QWidget(parent) {
 }
 
 MainWidget::~MainWidget() {}
+
+void MainWidget::updateNativeFileDrops() {
+  if (!native_file_drops_ || !internalWinId()) return;
+  const HWND hwnd = reinterpret_cast<HWND>(internalWinId());
+
+  // 即使 acceptDrops 为 false，Qt 6 仍会在顶层窗口句柄上注册 OLE 拖放。
+  // 管理员模式下撤销该注册，让资源管理器改用 WM_DROPFILES 传递文件。
+  const HRESULT hr = RevokeDragDrop(hwnd);
+  if (FAILED(hr) && hr != DRAGDROP_E_NOTREGISTERED) {
+    DragAcceptFiles(hwnd, FALSE);
+    qWarning() << "Cannot disable OLE drag and drop:" << hr;
+    return;
+  }
+
+  // 同时放行 Shell 数据传输消息和最终的文件放置通知。
+  // 仅放行 WM_DROPFILES 可能出现光标允许放置、但文件数据未送达的情况。
+  // 0x0049（WM_COPYGLOBALDATA）未公开文档，因此消息放行仅限当前窗口。
+  constexpr UINT copyGlobalData = 0x0049;
+  for (const UINT message : { static_cast<UINT>(WM_DROPFILES),
+                             static_cast<UINT>(WM_COPYDATA), copyGlobalData }) {
+    if (!ChangeWindowMessageFilterEx(hwnd, message, MSGFLT_ALLOW, nullptr)) {
+      const DWORD error = GetLastError();
+      DragAcceptFiles(hwnd, FALSE);
+      qWarning() << "Cannot allow native file drop message:" << message << error;
+      return;
+    }
+  }
+
+  const bool enabled = isVisible() && icons_inner_widget->acceptDrops()
+      && stacked_widget->currentWidget() == icons_inner_widget;
+  DragAcceptFiles(hwnd, enabled ? TRUE : FALSE);
+  qInfo() << "[NativeDrop] registration: hwnd=" << reinterpret_cast<quintptr>(hwnd)
+          << "enabled=" << enabled << "visible=" << isVisible()
+          << "acceptDrops=" << icons_inner_widget->acceptDrops()
+          << "gridPage=" << (stacked_widget->currentWidget() == icons_inner_widget);
+}
+
+bool MainWidget::event(QEvent* event) {
+  const bool handled = QWidget::event(event);
+  if (event->type() == QEvent::WinIdChange && native_file_drops_) {
+    // 等待 Qt 完成新窗口句柄的注册后，再次撤销 OLE 拖放注册。
+    QTimer::singleShot(0, this, &MainWidget::updateNativeFileDrops);
+  }
+  return handled;
+}
+
+bool MainWidget::nativeEvent(const QByteArray& eventType, void* message, qintptr* result) {
+  if (native_file_drops_ && eventType == "windows_generic_MSG") {
+    const auto msg = static_cast<MSG*>(message);
+    if (msg->message == WM_COPYDATA || msg->message == 0x0049) {
+      // 只记录传输消息，数据传输仍交由 Windows 处理。
+      qInfo() << "[NativeDrop] transfer message=" << msg->message;
+    }
+    if (msg->message == WM_DROPFILES) {
+      *result = 0;
+      const auto drop = reinterpret_cast<HDROP>(msg->wParam);
+      const auto finishDrop = qScopeGuard([drop]() { DragFinish(drop); });
+      qInfo() << "[NativeDrop] WM_DROPFILES received";
+      const auto reject = [](const char* reason) {
+        qWarning() << "[NativeDrop] rejected:" << reason;
+        return true; // 标记消息已处理，退出作用域时自动释放 HDROP。
+      };
+
+      // 窗口隐藏、页面切换或禁用编辑后，拒绝处理尚未送达的旧拖放消息。
+      if (!isVisible() || !isEnabled()) return reject("window hidden or disabled");
+      if (QApplication::activeModalWidget()) return reject("modal dialog active");
+      if (stacked_widget->currentWidget() != icons_inner_widget) return reject("grid page inactive");
+      if (!icons_inner_widget->acceptDrops()) return reject("file drops disabled");
+      const UINT count = DragQueryFileW(drop, 0xffffffff, nullptr, 0);
+      qInfo() << "[NativeDrop] file count=" << count;
+      if (count != 1) return reject("expected exactly one file or folder");
+
+      POINT point = {};
+      const BOOL clientAreaReported = DragQueryPoint(drop, &point);
+      qInfo() << "[NativeDrop] source point=" << QPoint(point.x, point.y)
+              << "client area reported=" << bool(clientAreaReported);
+      // 资源管理器通过传统 WM_DROPFILES 通道传入的坐标相对于客户区，
+      // 即使 DragQueryPoint 返回 FALSE，也不能据此认定它是屏幕坐标。
+      // 再调用 ScreenToClient 会重复减去窗口位置，造成落点偏移。
+      // 下方直接根据实际网格范围校验返回的落点。
+      const UINT length = DragQueryFileW(drop, 0, nullptr, 0);
+      if (length == 0 || length > 32767) return reject("invalid path length");
+      std::wstring path(length + 1, L'\0');
+      if (DragQueryFileW(drop, 0, path.data(), length + 1) != length)
+        return reject("cannot read file path");
+
+      // HDROP 提供客户区物理像素坐标，QWidget 使用逻辑像素坐标。
+      // 仅缩放客户区内的偏移，避免不同 DPI 的多屏环境下全局坐标转换出错。
+      const qreal scale = devicePixelRatioF();
+      const QPoint clientPoint = QPointF(point.x / scale, point.y / scale).toPoint();
+      const QPoint gridPoint = icons_inner_widget->mapFrom(this, clientPoint);
+      qInfo() << "[NativeDrop] client pixels=" << QPoint(point.x, point.y)
+              << "scale=" << scale << "grid position=" << gridPoint;
+      if (icons_inner_widget->addDroppedFile(QString::fromWCharArray(path.data(), length), gridPoint))
+        qInfo() << "[NativeDrop] item added";
+      return true;
+    }
+  }
+  return QWidget::nativeEvent(eventType, message, result);
+}
 
 
 void MainWidget::init_search_line() {
@@ -541,6 +673,7 @@ void MainWidget::showEvent(QShowEvent* event) {
 
 
   QWidget::showEvent(event);
+  updateNativeFileDrops();
 }
 
 void MainWidget::hideEvent(QHideEvent* event) {
@@ -550,6 +683,7 @@ void MainWidget::hideEvent(QHideEvent* event) {
   search_line->clear(); //清空搜索栏，并让界面重回图标界面
 
   QWidget::hideEvent(event);
+  updateNativeFileDrops();
 }
 
 #ifdef _DEBUG
