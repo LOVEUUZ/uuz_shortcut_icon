@@ -70,6 +70,8 @@ class MainWidget : public QWidget {
 
     //搜索栏相关功能
     void    init_search_line();
+    void    updateSearchVisibility();
+    bool    everything_search_enabled_ = false;
     QTimer* searchTimer; //避免文本框 textChanged 触发过快
 
 

@@ -56,6 +56,7 @@ MainWidget::MainWidget(QWidget* parent) : QWidget(parent) {
   init_layout();
 
   init_search_line();
+  updateSearchVisibility();
 
   native_file_drops_ = isProcessElevated();
   connect(icons_inner_widget, &Icons_inner_widget::fileDropAcceptanceChanged,
@@ -212,6 +213,29 @@ void MainWidget::init_search_line() {
   QFont font;
   font.setPointSize(16);
   search_line->setFont(font);
+  search_line->setObjectName("everythingSearch");
+  search_line->setPlaceholderText(tr("Everything 搜索：输入文件或文件夹名称"));
+  search_line->setAccessibleName(tr("Everything 搜索"));
+  search_line->setClearButtonEnabled(true);
+  search_line->setStyleSheet(R"(
+    QLineEdit#everythingSearch {
+      background-color: #f1f6fc;
+      color: #1f2937;
+      border: 2px solid #8aa4c2;
+      border-radius: 8px;
+      padding: 0 14px;
+      selection-background-color: #2563eb;
+      selection-color: white;
+    }
+    QLineEdit#everythingSearch:hover { border-color: #507eaf; }
+    QLineEdit#everythingSearch:focus {
+      background-color: #ffffff;
+      border-color: #2563eb;
+    }
+  )");
+  QPalette searchPalette = search_line->palette();
+  searchPalette.setColor(QPalette::PlaceholderText, QColor("#526780"));
+  search_line->setPalette(searchPalette);
 
 
   //用于避免定时器
@@ -220,12 +244,16 @@ void MainWidget::init_search_line() {
 
   //当定时器倒计时结束后触发搜索任务
   connect(searchTimer, &QTimer::timeout, this, [this]() {
-    // slot_showStackedWidgetIndex(text.isEmpty() ? 0 : 1);
+    if (!everything_search_enabled_ || !isVisible() || search_line->text().isEmpty()) return;
     emit search_inner_widget->slot_textChange(search_line->text()); // 发出信号进行搜索
   });
 
   //当搜索栏文本改变后触发定时器倒计时一次
   connect(search_line, &QLineEdit::textChanged, this, [this]() {
+    if (!everything_search_enabled_ || search_line->text().isEmpty()) {
+      searchTimer->stop();
+      return;
+    }
     searchTimer->start(300); // 启动定时器，300毫秒后触发
   });
 
@@ -235,23 +263,49 @@ void MainWidget::init_search_line() {
 
     int index = 0;
     if (text.isEmpty()) index = 0; // 文本为空，显示  icons_inner_widget 图标显示窗口
-    else index                = 1; // 显示为 search_inner_widget 搜索内容窗口
+    else if (everything_search_enabled_) index = 1; // 搜索启用时才显示结果页
 
     slot_showStackedWidgetIndex(index);
   });
 }
 
+void MainWidget::updateSearchVisibility() {
+  const bool enabled = json_config.value("is_everything_search", false);
+  if (everything_search_enabled_ == enabled && search_line->isHidden() == !enabled) return;
+  everything_search_enabled_ = enabled;
+
+  if (!enabled) {
+    searchTimer->stop();
+    search_line->clearFocus();
+    search_inner_widget->clearFocus();
+    search_line->clear();
+    stacked_widget->setCurrentIndex(0);
+  }
+  search_line->setFocusPolicy(enabled ? Qt::StrongFocus : Qt::NoFocus);
+  search_line->setAttribute(Qt::WA_TransparentForMouseEvents, !enabled);
+  search_line->setEnabled(enabled);
+  search_line->setVisible(enabled);
+  // 搜索关闭时用均衡的留白将窗口调整为约 16:9，保留原来的图标网格坐标。
+  v_search_and_grid->setContentsMargins(5, enabled ? 0 : 28, 5, enabled ? 0 : 28);
+  stacked_widget->setContentsMargins(enabled ? 10 : 8, enabled ? 5 : 10,
+                                     enabled ? 5 : 8, 10);
+  topLayout->setContentsMargins(0, enabled ? 5 : 0, 0, 0);
+  v_search_and_grid->setSpacing(enabled ? 6 : 0);
+  v_search_and_grid->invalidate();
+  setFixedSize(v_search_and_grid->sizeHint());
+}
+
 
 // 设置布局
 void MainWidget::init_layout() {
-  // 1. 创建主布局并设置无边距
+  // 1. 基础边距；搜索开关切换时统一调整图标区留白
   v_search_and_grid = new QVBoxLayout(this);
-  v_search_and_grid->setContentsMargins(0, 0, 0, 0); // 设置主布局无边距
+  v_search_and_grid->setContentsMargins(5, 0, 5, 0);
   setLayout(v_search_and_grid);
 
   // 2. 创建上部垂直布局，并设置边距和间距
   topLayout = new QVBoxLayout();
-  topLayout->setContentsMargins(5, 5, 5, 0); // 设置上部布局与四周的距离
+  topLayout->setContentsMargins(0, 5, 0, 0);
   topLayout->setSpacing(5);                  // 设置上部布局内部组件间距为5
 
   search_line = new Search_line(this);
@@ -538,7 +592,7 @@ void MainWidget::setKeyEvent() {
     }
     else {
         // 2. 窗口已显示，任意按键按下隐藏窗口
-        if (keyEvent.isPressed && !this->search_line->hasFocus()) {
+        if (keyEvent.isPressed && (!everything_search_enabled_ || !this->search_line->hasFocus())) {
             hide();
             return;
         }
@@ -617,6 +671,7 @@ void MainWidget::setwindowsWinEvent() {
 //重要: 后续配置变更触发操作放这里
 void MainWidget::configUpdate() {
     configUpdateWhitelistCache();
+    updateSearchVisibility();
 }
 
 void MainWidget::configUpdateWhitelistCache() {
@@ -653,10 +708,12 @@ void MainWidget::showEvent(QShowEvent* event) {
     //windows api，强制输入框获取焦点，参考：https://learn.microsoft.com/zh-cn/windows/win32/api/winuser/nf-winuser-setfocus
    // SetFocus((HWND)this->search_line->winId());
    //});
-  this->search_line->setEnabled(false);
-  QTimer::singleShot(500, this, [this]() {
-      this->search_line->setEnabled(true);
-   });
+  if (everything_search_enabled_) {
+    search_line->setEnabled(false);
+    QTimer::singleShot(500, this, [this]() {
+      search_line->setEnabled(everything_search_enabled_ && isVisible());
+    });
+  }
 
   //每次显示是否设置毛玻璃效果
   if (json_config.contains("is_glass") && json_config["is_glass"].get<bool>()) {
@@ -782,6 +839,7 @@ void MainWidget::init_coordinate() {
     json_config["CtrlCount"] = 2;
     json_config["Alt"] = false;
     json_config["AltCount"] = 2;
+    json_config["is_everything_search"] = false;
 
     //添加日志的记录，避免读取保留天数的时候出错
     json_config["log_retain_day"] = 7;
@@ -842,6 +900,10 @@ void MainWidget::init_coordinate() {
 
   str_config_content = qstr_config_content.toStdString();
   json_config        = json::parse(str_config_content);
+  // 旧配置未设置此项时，同样默认关闭；下次保存配置时写入。
+  if (!json_config.contains("is_everything_search")) {
+    json_config["is_everything_search"] = false;
+  }
 
   for (int i = 0; i < json_config["coordinate"].size(); ++i) {
     QPoint coordinate;
@@ -990,6 +1052,8 @@ void MainWidget::slot_showStackedWidgetIndex(const int index) const {
 
 void MainWidget::slot_moveFocus(QWidget* widget) {
   if (widget != nullptr) {
+    if (!widget->isVisible() || !widget->isEnabled()) return;
+    if (!everything_search_enabled_ && (widget == search_line || widget == search_inner_widget)) return;
     widget->setFocus();
   }
   else {

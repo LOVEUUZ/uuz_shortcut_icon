@@ -45,7 +45,7 @@
       </item>
       <item>
        <widget class="QWidget" name="horizontalWidget" native="true">
-        <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="0,0">
+        <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="0,0,0">
          <property name="spacing">
           <number>20</number>
          </property>
@@ -60,6 +60,16 @@
           <widget class="QCheckBox" name="checkBox_is_glass">
            <property name="text">
             <string>背景毛玻璃</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox_is_everything_search">
+           <property name="toolTip">
+            <string>开启后显示 Everything 搜索栏，需要已安装并运行 Everything。默认关闭。</string>
+           </property>
+           <property name="text">
+            <string>显示 Everything 搜索栏</string>
            </property>
           </widget>
          </item>

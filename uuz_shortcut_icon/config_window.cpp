@@ -33,6 +33,10 @@ Config_window::Config_window(QWidget* parent) :
 	//开机自启配置修改
 	connect(ui.checkBox_is_boot_start, &QCheckBox::checkStateChanged, this, &Config_window::slot_checkBoxIsBootStart);
 	connect(ui.checkBox_is_glass, &QCheckBox::checkStateChanged, this, &Config_window::slot_checkBoxIsGlass);
+	connect(ui.checkBox_is_everything_search, &QCheckBox::toggled, this, [this](bool enabled) {
+		main_widget->get_jsonConfig()["is_everything_search"] = enabled;
+		emit sig_configUpdate();
+	});
 	connect(this, &Config_window::sig_configUpdate, main_widget, &MainWidget::slot_modifyConfig);
 
 	//日志保留天数配置修改
@@ -84,6 +88,7 @@ void Config_window::closeEvent(QCloseEvent* event) {
 /**读取配置并赋值*/
 void Config_window::init_config() {
 	json& json_config = main_widget->get_jsonConfig();
+	ui.checkBox_is_everything_search->setChecked(json_config.value("is_everything_search", false));
 
 	//开机启动填充
 	if (!json_config.contains(is_boot_start)) {
